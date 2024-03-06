@@ -7,8 +7,8 @@ class CreatePeriodRecordSerializer(serializers.Serializer):
 
 class FetchPeriodRecordsSerializer(serializers.Serializer):
     user_id_hash = serializers.CharField(max_length=255)
-    page = serializers.IntegerField(min_value=1)
-    rows_per_page = serializers.IntegerField(min_value=10, max_value=100)
+    page = serializers.IntegerField(min_value=1, required=False, default=1)
+    rows_per_page = serializers.IntegerField(min_value=10, max_value=100, required=False, default=10)
     start_datetime = serializers.DateTimeField(required=False)
     end_datetime = serializers.DateTimeField(required=False)
     
@@ -19,9 +19,9 @@ class CreateSymptomsRecordSerializer(serializers.Serializer):
     
 class FetchSymptomsRecordsSerializer(serializers.Serializer):
     user_id_hash = serializers.CharField(max_length=255)
-    page = serializers.IntegerField(min_value=1)
-    rows_per_page = serializers.IntegerField(min_value=10, max_value=100)
-    symptom_occurence = serializers.IntegerField(min_value=0, max_value=2)
+    page = serializers.IntegerField(min_value=1, required=False, default=1)
+    rows_per_page = serializers.IntegerField(min_value=10, max_value=100, required=False, default=10)
+    symptom_occurence = serializers.IntegerField(min_value=0, max_value=2, required=False, default=0)
     create_datetime_start = serializers.DateTimeField(required=False)
     create_datetime_end = serializers.DateTimeField(required=False)
     

@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from hashlib import sha256
+from django.forms import model_to_dict
 from django_enumfield import enum
 from rest_framework.views import APIView
 from rest_framework import status
@@ -46,9 +48,11 @@ class AutenticationView(APIView):
             ########## LOGIN ##########
             if auth_type == self.AuthType.LOGIN:
                 
-                user = User.objects.get(email=email, password=password_hash)
-                if not user:
+                user = User.objects.filter(email=email, password=password_hash)
+                if len(user) == 0:
                     raise CustomException('Invalid email or password')
+                
+                user = user[0]
                 
                 user_id_hash = user.user_id_hash
                 
@@ -65,8 +69,10 @@ class AutenticationView(APIView):
                     session_id=session_id
                 )
                 
-                response_body = {'session_id': session_id}
-                
+                response_body = {
+                    'user_id_hash': active_session.user_id_hash,
+                    'session_id': active_session.session_id
+                }
                 return response_obj(message='Logged in successfully',data=response_body)
             
             ########## SIGNUP ##########
@@ -76,21 +82,27 @@ class AutenticationView(APIView):
             
             user  = User.objects.create(email=email, password=password_hash)
             
-            # Assign user_id_hash as hex value of user_id because user_id is UUIDField and cannot be used as primary key in ActiveSessions
-            user.user_id_hash = user.user_id.hex
+            # Generate user_id_hash and save it
+            user_id_hash = str(user.user_id) + 'A#DSfe85bc3c5d9fbcafaf5fc80db7b0e9b67DSjidjhW'
+            user_id_hash = sha256(user_id_hash.encode('utf-8')).hexdigest()
+            user.user_id_hash = user_id_hash
             user.save()
-            
+
             # Generate session key
             session_id = self.generate_session_id(payload={'user_id_hash': user.user_id_hash})
             
             # Create active session
             active_session = ActiveSessions.objects.create(user_id_hash=user.user_id_hash, session_id=session_id)
-            
-            response_body = {'session_id': session_id}
+
+            response_body = {
+                'user_id_hash': active_session.user_id_hash,
+                'session_id': active_session.session_id
+            }
             return response_obj(message='Signed up successfully',data=response_body)
   
         except CustomException as e:
             return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)   
             
         except Exception as e:
+            print(e)
             return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

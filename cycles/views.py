@@ -1,16 +1,19 @@
-from datetime import datetime, timezone
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.forms import model_to_dict
 from rest_framework.views import APIView
 from rest_framework import status
 from django.db.models import Q
-
+from django.utils.decorators import method_decorator
 
 from cycles.models import PeriodRecord, CurrentPeriod, SymptomsRecord
 from cycles.serializers import CreatePeriodRecordSerializer, CreateSymptomsRecordSerializer, FetchPeriodRecordDetailsSerializer, FetchPeriodRecordsSerializer, FetchSymptomsRecordsSerializer
-from period_tracking_BE.helpers.utils import get_serialized_data, response_obj
-from authentication.mixins import TokenValidationMixin
+from period_tracking_BE.helpers.utils import get_serialized_data, response_obj, validate_token
 from period_tracking_BE.helpers.exceptions import CustomException
 
-class CreatePeriodRecordView(TokenValidationMixin, APIView):
+
+@method_decorator(validate_token, name='post')
+class CreatePeriodRecordView(APIView):
     create_period_record_serializer = CreatePeriodRecordSerializer
     
     def post(self, request):
@@ -30,7 +33,12 @@ class CreatePeriodRecordView(TokenValidationMixin, APIView):
             response_body = {}
             
             if event == PeriodRecord.Event.START:
-                current_period = CurrentPeriod.objects.get(user_id_hash=user_id_hash)
+                current_period, created = CurrentPeriod.objects.get_or_create(
+                    user_id_hash=user_id_hash,
+                    defaults={
+                        'current_period_record_id':None,
+                        'last_period_record_id':None
+                    })
                 
                 # Check if period has already started
                 if current_period.current_period_record_id != None:
@@ -49,7 +57,11 @@ class CreatePeriodRecordView(TokenValidationMixin, APIView):
                 }
                 
             elif event == PeriodRecord.Event.END:
-                current_period = CurrentPeriod.objects.get(user_id_hash=user_id_hash)
+                current_period = CurrentPeriod.objects.filter(user_id_hash=user_id_hash)
+                if len(current_period) == 0:
+                    raise CustomException('Period not started')
+                
+                current_period = current_period[0]
                 
                 # Check if period is started
                 if current_period.current_period_record_id == None:
@@ -78,10 +90,12 @@ class CreatePeriodRecordView(TokenValidationMixin, APIView):
         except CustomException as e:
             return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
+            print(e)
             return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-class FetchPeriodRecordsView(TokenValidationMixin, APIView):
+@method_decorator(validate_token, name='post')
+class FetchPeriodRecordsView(APIView):
     fetch_period_records_serializer = FetchPeriodRecordsSerializer
     
     def post(self, request):
@@ -105,7 +119,7 @@ class FetchPeriodRecordsView(TokenValidationMixin, APIView):
             # CASE 2: If start datetime is provided and end datetime is not provided, fetch all records from start datetime to now
             # CASE 3: If end datetime is provided and start datetime is not provided, fetch all records from end datetime to 100 years ago
             # CASE 4: If both start and end datetime are provided, fetch all records between start and end datetime
-            start_datetime = timezone.make_aware(datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M:%SZ')) if start_datetime else timezone.now() - datetime.timedelta(days=365 * 100)
+            start_datetime = timezone.make_aware(datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M:%SZ')) if start_datetime else timezone.now() - timedelta(days=365 * 100)
             end_datetime = timezone.make_aware(datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M:%SZ')) if end_datetime else timezone.now()
             
             # Filter period records based on start and end datetime range
@@ -117,16 +131,20 @@ class FetchPeriodRecordsView(TokenValidationMixin, APIView):
                     Q(start_datetime__lte=end_datetime, end_datetime__gte=end_datetime)
                 )
             )
+            
+            print(period_records)
 
             # Paginate the period records
-            period_records = period_records.order_by('-create_datetime')[page*rows_per_page:(page+1)*rows_per_page].values()
+            period_records = period_records.order_by('-start_datetime')[(page-1)*rows_per_page:(page)*rows_per_page].values()
+            
+            print(period_records)
             
             response_body = [
                 {
-                    'period_record_id': record.period_record_id,
-                    'current_status': record.current_status,
-                    'start_datetime': record.start_datetime,
-                    'end_datetime': record.end_datetime,
+                    'period_record_id': record['period_record_id'],
+                    'current_status': record['current_status'],
+                    'start_datetime': record['start_datetime'],
+                    'end_datetime': record['end_datetime'],
                 }
                 for record in period_records
             ]
@@ -136,9 +154,12 @@ class FetchPeriodRecordsView(TokenValidationMixin, APIView):
         except CustomException as e:
             return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
+            print(e)
             return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-class CreateSymptomsRecordView(TokenValidationMixin, APIView):
+
+
+@method_decorator(validate_token, name='post')      
+class CreateSymptomsRecordView(APIView):
     create_symptoms_record_serializer = CreateSymptomsRecordSerializer
     
     def post(self, request):
@@ -156,7 +177,14 @@ class CreateSymptomsRecordView(TokenValidationMixin, APIView):
             symptom = get_serialized_data(request_body, 'symptom')
             comments = get_serialized_data(request_body, 'comments', '')
             
-            symptom_occurence = SymptomsRecord.SymptomOccurence.NON_CYCLE_PHASE if CurrentPeriod.current_period_record_id == None else SymptomsRecord.SymptomOccurence.DURING_PERIOD
+            current_period, created = CurrentPeriod.objects.get_or_create(
+                user_id_hash=user_id_hash,
+                defaults={
+                    'current_period_record_id':None,
+                    'last_period_record_id':None
+                })
+            
+            symptom_occurence = SymptomsRecord.SymptomOccurence.NON_CYCLE_PHASE if current_period.current_period_record_id == None else SymptomsRecord.SymptomOccurence.DURING_PERIOD
             
             symptom_record = SymptomsRecord.objects.create(
                 user_id_hash=user_id_hash,
@@ -166,18 +194,25 @@ class CreateSymptomsRecordView(TokenValidationMixin, APIView):
             )
             
             if symptom_occurence == SymptomsRecord.SymptomOccurence.DURING_PERIOD:
-                symptom_record.period_record_id = CurrentPeriod.current_period_record_id
+                symptom_record.period_record_id = current_period.current_period_record_id
                 symptom_record.save()
                 
-            response_body = symptom_record
+            response_body = {
+                'symptom_id': symptom_record.symptom_id,
+                'symptom': symptom_record.symptom,
+                'comments': symptom_record.comments,
+                'symptom_occurence': symptom_record.symptom_occurence,
+                'period_record_id': symptom_record.period_record_id 
+            }
             return response_obj(message='Symptom record saved successfully', data=response_body)
             
         except CustomException as e:
             return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-class FetchSymptomsRecordsView(TokenValidationMixin, APIView):
+
+@method_decorator(validate_token, name='post')       
+class FetchSymptomsRecordsView(APIView):
     fetch_symptoms_records_serializer = FetchSymptomsRecordsSerializer
     
     def post(self, request):
@@ -202,11 +237,11 @@ class FetchSymptomsRecordsView(TokenValidationMixin, APIView):
             # CASE 2: If start datetime is provided and end datetime is not provided, fetch all records from start datetime to now
             # CASE 3: If end datetime is provided and start datetime is not provided, fetch all records from end datetime to 100 years ago
             # CASE 4: If both start and end datetime are provided, fetch all records between start and end datetime
-            create_datetime_start = timezone.make_aware(datetime.strptime(create_datetime_start, '%Y-%m-%dT%H:%M:%SZ')) if create_datetime_start else timezone.now() - datetime.timedelta(days=365 * 100)
+            create_datetime_start = timezone.make_aware(datetime.strptime(create_datetime_start, '%Y-%m-%dT%H:%M:%SZ')) if create_datetime_start else timezone.now() - timedelta(days=365 * 100)
             create_datetime_end = timezone.make_aware(datetime.strptime(create_datetime_end, '%Y-%m-%dT%H:%M:%SZ')) if create_datetime_end else timezone.now()
             
             # Filter symptoms records based on created_datetime range
-            symptoms_records = symptoms_records.filter(created_datetime__gte=create_datetime_start, created_datetime__lte=create_datetime_end)
+            symptoms_records = SymptomsRecord.objects.filter(created_datetime__gte=create_datetime_start, created_datetime__lte=create_datetime_end)
             
             # Filter by symptom occurence, if not provided, fetch all records
             if symptom_occurence == SymptomsRecord.SymptomOccurence.DURING_PERIOD:
@@ -215,16 +250,16 @@ class FetchSymptomsRecordsView(TokenValidationMixin, APIView):
                 symptoms_records = symptoms_records.filter(symptom_occurence=SymptomsRecord.SymptomOccurence.NON_CYCLE_PHASE)
             
             # Paginate the symptoms records
-            symptoms_records=symptoms_records.order_by('-create_datetime')[page*rows_per_page:(page+1)*rows_per_page].values()
+            symptoms_records=symptoms_records.order_by('-created_datetime')[(page-1)*rows_per_page:(page)*rows_per_page].values()
             
             response_body = [
                 {
-                    'symptom_id': symptom.symptom_id,
-                    'symptom': symptom.symptom,
-                    'comments': symptom.comments,
-                    'symptom_occurence': symptom.symptom_occurence,
-                    **({'period_record_id': symptom.period_record_id} if symptom.symptom_occurence == SymptomsRecord.SymptomOccurence.DURING_PERIOD else {}),
-                    'created_datetime': symptom.created_datetime
+                    'symptom_id': symptom['symptom_id'],
+                    'symptom': symptom['symptom'],
+                    'comments': symptom['comments'],
+                    'symptom_occurence': symptom['symptom_occurence'],
+                    'period_record_id': symptom['period_record_id'], 
+                    'created_datetime': symptom['created_datetime']
                 }
                 for symptom in symptoms_records
             ]
@@ -234,9 +269,11 @@ class FetchSymptomsRecordsView(TokenValidationMixin, APIView):
         except CustomException as e:
             return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
+            print(e)
             return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class FetchPeriodRecordDetailsView(TokenValidationMixin, APIView):
+@method_decorator(validate_token, name='post')  
+class FetchPeriodRecordDetailsView(APIView):
     fetch_period_record_detail_serializer = FetchPeriodRecordDetailsSerializer
     
     def post(self, request):

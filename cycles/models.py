@@ -25,8 +25,8 @@ class CurrentPeriod(models.Model):
         db_table = 'current_period'
         
     user_id_hash = models.CharField(max_length=200, primary_key=True, editable=False)
-    current_period_record_id = models.UUIDField(null=True, blank=True)
-    last_period_record_id = models.UUIDField(null=True, blank=True)
+    current_period_record_id = models.CharField(max_length=200, null=True, blank=True)
+    last_period_record_id = models.CharField(max_length=200, null=True, blank=True)
     
     
 class SymptomsRecord(models.Model):
@@ -42,6 +42,6 @@ class SymptomsRecord(models.Model):
     symptom = models.CharField(max_length=200)
     comments = models.TextField()
     symptom_occurence = enum.EnumField(SymptomOccurence)
-    period_record_id = models.UUIDField(null=True, blank=True)
+    period_record_id = models.CharField(max_length=200, null=True, blank=True)
     created_datetime = models.DateTimeField(auto_now_add=True)
    
