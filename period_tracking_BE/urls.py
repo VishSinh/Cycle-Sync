@@ -8,5 +8,6 @@ urlpatterns = [
         path('auth/', include('authentication.urls')),
         path('cycles/', include('cycles.urls')),
         path('users/', include('users.urls')),
+        path('predictions/', include('predictions.urls')),
     ])),
 ]

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'authentication',
     'cycles',
     'users',
+    'predictions',
 ]
 
 MIDDLEWARE = [
