@@ -15,6 +15,7 @@ Period Tracking Backend is a Django project designed to provide backend function
 - Python 3.x
 - Django
 - Django REST Framework
+- MongoDB
 
 
 ## API Reference
