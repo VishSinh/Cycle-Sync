@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from authentication.models import ActiveSessions
 from jwt import encode as jwt_encode
+from django.conf import settings
 
 from users.models import User
 from period_tracking_BE.helpers.exceptions import CustomException
@@ -20,8 +21,8 @@ class AutenticationView(APIView):
         LOGIN = 1
         SIGNUP = 2 
     
-    def generate_session_id(self, payload, expiry_time_minutes=60):
-        secret_key = 'd8f7a8s7ana0191hJAIFBUuf9y1b' #TODO: This and default expiry_time_minutes should be stored in environment variable
+    def generate_session_id(self, payload, expiry_time_minutes=settings.SESSION_EXPIRY):
+        secret_key = settings.SESSION_SECRET_KEY 
         expiry_time = datetime.utcnow() + timedelta(minutes=expiry_time_minutes)
         payload['exp'] = expiry_time
         token = jwt_encode(payload, secret_key, algorithm='HS256')
@@ -83,7 +84,7 @@ class AutenticationView(APIView):
             user  = User.objects.create(email=email, password=password_hash)
             
             # Generate user_id_hash and save it
-            user_id_hash = str(user.user_id) + 'A#DSfe85bc3c5d9fbcafaf5fc80db7b0e9b67DSjidjhW'
+            user_id_hash = str(user.user_id) + settings.USER_ID_HASH_SALT
             user_id_hash = sha256(user_id_hash.encode('utf-8')).hexdigest()
             user.user_id_hash = user_id_hash
             user.save()

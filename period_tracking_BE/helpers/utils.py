@@ -1,7 +1,7 @@
-from functools import wraps
+from datetime import datetime, timedelta
 from hashlib import sha256
 from traceback import print_exc
-from django.forms import model_to_dict
+from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -20,6 +20,9 @@ def validate_token(func):
 
             if len(active_session) == 0:
                 return response_obj(success=False, message='Invalid Auth Credentials', status_code=status.HTTP_401_UNAUTHORIZED)
+            
+            if active_session[0].created_at < datetime.now() - timedelta(minutes=settings.SESSION_EXPIRY):
+                return response_obj(success=False, message='Session expired', status_code=status.HTTP_401_UNAUTHORIZED)
         
             return func(request, *args, **kwargs)
         
