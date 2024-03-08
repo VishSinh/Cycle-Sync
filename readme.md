@@ -26,7 +26,6 @@ Documentation for APIs in Postman
 
 ## Installation
 
-Install my-project with npm
 
 To install and run the project locally, follow these steps:
 
