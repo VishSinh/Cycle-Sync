@@ -84,7 +84,7 @@ DATABASES = {
         'NAME': 'period_tracking',
         'ENFORCE_SCHEMA': True,  # Set this to True if you want to enforce schema validation
         'CLIENT': {
-            'host': 'mongodb://localhost:27017/',
+            'host': 'mongodb://mongodb:27017/',
         },
         'CONN_MAX_AGE' : None,
     }

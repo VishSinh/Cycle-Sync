@@ -33,7 +33,10 @@ def validate_token(func):
     return wrapper_func
             
         
-def response_obj(success=True, message='', status_code=200, data={}):
+def response_obj(success=True, message='', status_code=200, data={}, error=''):
+    if(not error == ''):
+        print_exc(error)
+        
     data = {
         "success": success,
         "message": message,

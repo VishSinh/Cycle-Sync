@@ -22,6 +22,9 @@ class AutenticationView(APIView):
         SIGNUP = 2 
     
     def generate_session_id(self, payload, expiry_time_minutes=settings.SESSION_EXPIRY):
+        if isinstance(expiry_time_minutes, str):
+            expiry_time_minutes = int(expiry_time_minutes)
+            
         secret_key = settings.SESSION_SECRET_KEY 
         expiry_time = datetime.utcnow() + timedelta(minutes=expiry_time_minutes)
         payload['exp'] = expiry_time
@@ -102,8 +105,7 @@ class AutenticationView(APIView):
             return response_obj(message='Signed up successfully',data=response_body)
   
         except CustomException as e:
-            return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+            return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,error=e)   
             
         except Exception as e:
-            print(e)
-            return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error=e)
