@@ -34,6 +34,12 @@ To install and run the project locally, follow these steps:
 - Install dependencies: `pip3 install -r requirements.txt`
 - Perform database migrations: `python3 manage.py migrate`
 - Start the development server: `python3 manage.py runserver`
+
+### Start Celery
+
+`celery -A your_project_name worker --loglevel=info`
+`celery -A your_project_name beat --loglevel=info`
+
 ## Environment Variables
 
 To run this project, you will need to add the following environment variables to your .env file
