@@ -37,9 +37,11 @@ To install and run the project locally, follow these steps:
 
 ### Start Celery
 
-`celery -A period_tracking_BE worker --loglevel=info`
+```bash
+celery -A period_tracking_BE worker --loglevel=info```
 
-`celery -A period_tracking_BE beat --loglevel=info`
+```bash
+celery -A period_tracking_BE beat --loglevel=info```
 
 ## Environment Variables
 
