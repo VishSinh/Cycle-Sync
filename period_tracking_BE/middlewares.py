@@ -51,6 +51,6 @@ class RateLimitMiddleware:
             return self.rate_limit_exceeded_response()
 
     def rate_limit_exceeded_response(self):
-        return response_obj(success=False, message='Rate limit exceeded', status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+        return response_obj(success=False, message='Rate imit exceeded', status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
 
