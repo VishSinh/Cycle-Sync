@@ -16,7 +16,7 @@ Period Tracking Backend is a Django project designed to provide backend function
 - Django
 - Django REST Framework
 - MongoDB
-
+- RabbitMQ
 
 ## API Reference
 
@@ -26,14 +26,43 @@ Documentation for APIs in Postman
 
 ## Installation
 
-
 To install and run the project locally, follow these steps:
 
-- Clone the repository: `git clone https://github.com/VishSinh/Period-Tracker.git`
-- Navigate to the project directory: `cd period-tracker`
-- Install dependencies: `pip3 install -r requirements.txt`
-- Perform database migrations: `python3 manage.py migrate`
-- Start the development server: `python3 manage.py runserver`
+- Clone the repository:
+
+```bash
+git clone https://github.com/VishSinh/Period-Tracker.git
+```
+
+- Navigate to the project directory:
+
+```bash
+cd period-tracker
+```
+
+- Install dependencies:
+
+```bash
+pip3 install -r requirements.txt
+```
+
+- Make command exceutable:
+
+```bash
+chmod +x start_server.sh
+```
+
+- Start server in DEBUG mode:
+
+```bash
+./start_server.sh
+```
+
+- Start server in PRODUCTION mode
+
+```bash
+./start_server.sh true
+```
 
 ### Start Celery
 
@@ -57,3 +86,8 @@ To run this project, you will need to add the following environment variables to
 
 `USER_ID_HASH_SALT`
 
+`CELERY_BROKER_URL`
+
+`RATE_LIMIT`
+
+`RATE_LIMIT_WINDOW`

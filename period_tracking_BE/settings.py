@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 from os import getenv as os_getenv
+from dotenv import load_dotenv
+from datetime import timedelta
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -51,7 +55,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'django.middleware.clickjacking.XFrameOptionsMiddleware'
+    'period_tracking_BE.middlewares.RateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'period_tracking_BE.urls'
@@ -84,11 +89,18 @@ DATABASES = {
         'NAME': 'period_tracking',
         'ENFORCE_SCHEMA': True,  # Set this to True if you want to enforce schema validation
         'CLIENT': {
-            'host': 'mongodb://mongodb:27017/',
+            'host': 'mongodb://localhost:27017/',
         },
         'CONN_MAX_AGE' : None,
     }
 }
+
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+#         'LOCATION': 'rate_limit',
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -131,11 +143,19 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
+#################################################################
+##################### ENVIRONMENT VARIABLES #####################
+#################################################################
 # APPLICATION SETTINGS
 SESSION_SECRET_KEY = os_getenv('SESSION_SECRET_KEY')
-SESSION_EXPIRY = os_getenv('SESSION_EXPIRY')
+SESSION_EXPIRY = int(os_getenv('SESSION_EXPIRY'))
 USER_ID_HASH_SALT = os_getenv('USER_ID_HASH_SALT')
 
 # CELERY SETTINGS
 CELERY_BROKER_URL = os_getenv('CELERY_BROKER_URL')
+
+# RATE LIMIT SETTINGS
+RATE_LIMIT = int(os_getenv('RATE_LIMIT'))  
+RATE_LIMIT_WINDOW = timedelta(hours=int(os_getenv('RATE_LIMIT_WINDOW'))) 
 

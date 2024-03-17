@@ -22,11 +22,8 @@ class AutenticationView(APIView):
         SIGNUP = 2 
     
     def generate_session_id(self, payload, expiry_time_minutes=settings.SESSION_EXPIRY):
-        if isinstance(expiry_time_minutes, str):
-            expiry_time_minutes = int(expiry_time_minutes)
-            
         secret_key = settings.SESSION_SECRET_KEY 
-        expiry_time = datetime.utcnow() + timedelta(minutes=expiry_time_minutes)
+        expiry_time = datetime.now() + timedelta(minutes=expiry_time_minutes)
         payload['exp'] = expiry_time
         token = jwt_encode(payload, secret_key, algorithm='HS256')
         
