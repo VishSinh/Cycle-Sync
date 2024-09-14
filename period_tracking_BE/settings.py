@@ -56,7 +56,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware'
-    'period_tracking_BE.middlewares.RateLimitMiddleware',
+    # 'period_tracking_BE.middlewares.RateLimitMiddleware',
+    'middlewares.exception_middleware.ExceptionMiddleware',
+    # 'period_tracking_BE.middlewares.ResponseMiddleware',
 ]
 
 ROOT_URLCONF = 'period_tracking_BE.urls'
@@ -119,6 +121,28 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "loguru": {
+            "class": "utils.logger.InterceptHandler",
+        },
+    },
+    "loggers": {
+        "django": {"handlers": ["loguru"], "level": "INFO"},
+    }
+}
+
+# REST_FRAMEWORK = {
+#     # ... other settings ...
+#     'DEFAULT_RENDERER_CLASSES': [
+#         'period_tracking_BE.middlewares.CustomFlexibleRenderer',
+#         'rest_framework.renderers.BrowsableAPIRenderer',
+#     ],
+#     # 'EXCEPTION_HANDLER': 'path.to.your.custom_exception_handler',
+# }
 
 
 # Internationalization

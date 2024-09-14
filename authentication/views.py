@@ -1,17 +1,17 @@
 from datetime import datetime, timedelta
 from hashlib import sha256
-from django.forms import model_to_dict
 from django_enumfield import enum
 from rest_framework.views import APIView
-from rest_framework import status
 from authentication.models import ActiveSessions
 from jwt import encode as jwt_encode
 from django.conf import settings
 
 from users.models import User
-from period_tracking_BE.helpers.exceptions import CustomException
-from period_tracking_BE.helpers.utils import create_hashed_value, response_obj
+from utils.exceptions import BadRequest
+from utils.helpers import APIResponse, format_response
+from utils.logger import logger
 from authentication.serializers import AuthenticationSerializer
+from authentication.helpers import create_hashed_value
 
 
 class AutenticationView(APIView):
@@ -29,80 +29,76 @@ class AutenticationView(APIView):
         
         return token
     
+    @format_response
     def post(self, request):
-        try:
-            request_body = self.authentication_serializer(data=request.data)
-            
-            ########## HANDLE VALIDATION ERROR ##########
-            if not request_body.is_valid():
-                errors = request_body.errors
-                message = "; ".join([errors[key][0] if key == "non_field_errors" else f"{key} - {errors[key][0]}" for key in errors])
-                return response_obj(success=False, message=message, status_code=status.HTTP_400_BAD_REQUEST)
-            #############################################
+        request_body = self.authentication_serializer(data=request.data)
+        request_body.is_valid(raise_exception=True)
 
-            auth_type = request_body.validated_data['auth_type']
-            email = request_body.validated_data['email']
-            password = request_body.validated_data['password']
-            
-            password_hash = create_hashed_value(password)
-    
-            ########## LOGIN ##########
-            if auth_type == self.AuthType.LOGIN:
-                
-                user = User.objects.filter(email=email, password=password_hash)
-                if len(user) == 0:
-                    raise CustomException('Invalid email or password')
-                
-                user = user[0]
-                
-                user_id_hash = user.user_id_hash
-                
-                active_session = ActiveSessions.objects.filter(user_id_hash=user_id_hash)
-                if len(active_session) > 0:
-                    active_session.delete()
-                    
-                session_id = self.generate_session_id(
-                    payload={'user_id_hash': user_id_hash}
-                )
-                
-                active_session = ActiveSessions.objects.create(
-                    user_id_hash=user_id_hash, 
-                    session_id=session_id
-                )
-                
-                response_body = {
-                    'user_id_hash': active_session.user_id_hash,
-                    'session_id': active_session.session_id
-                }
-                return response_obj(message='Logged in successfully',data=response_body)
-            
-            ########## SIGNUP ##########
-            user = User.objects.filter(email=email)
-            if user:
-                raise CustomException('User already exists')
-            
-            user  = User.objects.create(email=email, password=password_hash)
-            
-            # Generate user_id_hash and save it
-            user_id_hash = str(user.user_id) + settings.USER_ID_HASH_SALT
-            user_id_hash = sha256(user_id_hash.encode('utf-8')).hexdigest()
-            user.user_id_hash = user_id_hash
-            user.save()
+        auth_type = request_body.validated_data['auth_type']
+        email = request_body.validated_data['email']
+        password = request_body.validated_data['password']
+        
+        logger.info(f'Auth type: {auth_type} Email: {email} Password: {password}')
+        
+        password_hash = create_hashed_value(password)
 
-            # Generate session key
-            session_id = self.generate_session_id(payload={'user_id_hash': user.user_id_hash})
+        ########## LOGIN ##########
+        if auth_type == self.AuthType.LOGIN:
             
-            # Create active session
-            active_session = ActiveSessions.objects.create(user_id_hash=user.user_id_hash, session_id=session_id)
-
+            user = User.objects.filter(email=email, password=password_hash)
+            if len(user) == 0:
+                raise BadRequest('Invalid email or password')
+            
+            user = user[0]
+            
+            user_id_hash = user.user_id_hash
+            
+            active_session = ActiveSessions.objects.filter(user_id_hash=user_id_hash)
+            if len(active_session) > 0:
+                active_session.delete()
+                
+            session_id = self.generate_session_id(
+                payload={'user_id_hash': user_id_hash}
+            )
+            
+            active_session = ActiveSessions.objects.create(
+                user_id_hash=user_id_hash, 
+                session_id=session_id
+            )
+            
             response_body = {
+                'message': 'Login successful',
                 'user_id_hash': active_session.user_id_hash,
-                'session_id': active_session.session_id
+                'session_id': active_session.session_id,
             }
-            return response_obj(message='Signed up successfully',data=response_body)
-  
-        except CustomException as e:
-            return response_obj(success=False, message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,error=e)   
             
-        except Exception as e:
-            return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, error=e)
+            return response_body
+
+        ########## SIGNUP ##########
+        user = User.objects.filter(email=email)
+        if user:
+            raise BadRequest('User already exists')
+        
+        user  = User.objects.create(email=email, password=password_hash)
+        
+        # Generate user_id_hash and save it
+        user_id_hash = str(user.user_id) + settings.USER_ID_HASH_SALT
+        user_id_hash = sha256(user_id_hash.encode('utf-8')).hexdigest()
+        user.user_id_hash = user_id_hash
+        user.save()
+
+        # Generate session key
+        session_id = self.generate_session_id(payload={'user_id_hash': user.user_id_hash})
+        
+        # Create active session
+        active_session = ActiveSessions.objects.create(user_id_hash=user.user_id_hash, session_id=session_id)
+
+        response_body = {
+            'message': 'User created successfully',
+            'user_id_hash': active_session.user_id_hash,
+            'session_id': active_session.session_id,
+        }
+        return APIResponse(data=response_body, status_code=201).response()
+
+
+    

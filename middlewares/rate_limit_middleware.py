@@ -1,9 +1,14 @@
 from datetime import timedelta, timezone
 from django.conf import settings
 from authentication.models import TrackerRegisteredUserRequests, TrackerNonRegisteredUserRequests
-from period_tracking_BE.helpers.utils import response_obj
+from utils.helpers import APIResponse, response_obj
 from rest_framework import status
+from django.conf import settings
+from rest_framework import status
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied as DjangoPermissionDenied
 
+
+# Set up logging for this module
 
 class RateLimitMiddleware:
     def __init__(self, get_response):
@@ -38,7 +43,8 @@ class RateLimitMiddleware:
             defaults={'ip_address': ip_address}
         )
         tracker_request.count += 1
-
+        
+        # Check if the user has made a request within the last REGISTERED_FREQ_RATE_LIMIT_MINUTES minutes
         if tracker_request.freq_req_at and tracker_request.freq_req_at > timezone.now() - timedelta(minutes=settings.REGISTERED_FREQ_RATE_LIMIT_MINUTES):
             tracker_request.freq_count += 1
         else:
@@ -52,5 +58,3 @@ class RateLimitMiddleware:
 
     def rate_limit_exceeded_response(self):
         return response_obj(success=False, message='Rate limit exceeded', status_code=status.HTTP_429_TOO_MANY_REQUESTS)
-
-

@@ -8,8 +8,8 @@ from django.utils.decorators import method_decorator
 
 from cycles.models import PeriodRecord, CurrentPeriod, SymptomsRecord
 from cycles.serializers import CreatePeriodRecordSerializer, CreateSymptomsRecordSerializer, FetchPeriodRecordDetailsSerializer, FetchPeriodRecordsSerializer, FetchSymptomsRecordsSerializer
-from period_tracking_BE.helpers.utils import get_serialized_data, response_obj, validate_token
-from period_tracking_BE.helpers.exceptions import CustomException
+from utils.helpers import get_serialized_data, response_obj, validate_token
+from utils.exceptions import CustomException
 
 
 @method_decorator(validate_token, name='post')
