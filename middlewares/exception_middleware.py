@@ -30,7 +30,7 @@ class ExceptionMiddleware:
         return response
 
     def process_exception(self, request: HttpRequest, exception: Exception) -> HttpResponse:
-        logger.error(exception)
+        logger.error(str(exception))
         
         if not hasattr(exception, 'status_code'):
             logger.info('Exception does not have status code')

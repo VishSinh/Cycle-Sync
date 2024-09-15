@@ -1,16 +1,19 @@
 from datetime import datetime, timedelta
+import json
 from traceback import print_exc
 from typing import Any, Dict, Optional
 from django.conf import settings
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import serializers
 from functools import wraps
-import logging
+from utils.logger import logger
 
 from authentication.models import ActiveSessions
+from utils.exceptions import BadRequest
 
-logger = logging.getLogger(__name__)
+
 
 
 '''
@@ -72,9 +75,11 @@ When wrapped on a function in a view, one can simply return a dictionary or a tu
 def format_response(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        try:
-            result = func(*args, **kwargs)
+        result = func(*args, **kwargs)
             
+        if isinstance(result, Exception):
+            raise result
+        try:
             if isinstance(result, tuple) and len(result) == 2:
                 response_body, status_code = result
                 return APIResponse(data=response_body, status_code=status_code).response()
@@ -91,16 +96,15 @@ def format_response(func):
 Custom Response Class to format the response in a consistent manner
 '''
 class APIResponse:
-    def __init__(self, success: bool = True, status_code: int = 200, 
-                    data: Optional[Dict[str, Any]] = None, error: Optional[Exception] = None):
+    def __init__(self, success: bool = True, status_code: int = 200, data: Optional[Dict[str, Any]] = None, error: Optional[Exception] = None):
         self.success = success
         self.status_code = status_code
         self.data = data or {}
         self.error = error
 
     def response(self, correlation_id: Optional[str] = None) -> JsonResponse: 
-        if self.error:
-            logger.error(f"Error occurred: {str(self.error)}", exc_info=True, extra={'correlation_id': correlation_id})
+        # if self.error:
+        #     logger.error(f"Error occurred: {str(self.error)}")
         
         response_data: Dict[str, Any] = {
             "success": self.success,
@@ -128,3 +132,20 @@ class APIResponse:
 
     def __str__(self) -> str:
         return f"APIResponse(success={self.success}, status_code={self.status_code}, data={self.data}, error={self.error})"
+
+
+
+'''
+Custom Serializer class to inherit from to handle validation errors
+'''
+class BaseSerializer(serializers.Serializer):
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as exc:
+            error_messages = [
+                f"{key} - {error}" if key != "non_field_errors" else error
+                for key, errors in exc.detail.items()
+                for error in errors
+            ]
+            raise BadRequest(json.dumps(error_messages))

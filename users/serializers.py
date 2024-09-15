@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
-class AddUserDetailsSerializer(serializers.Serializer):
+from utils.helpers import BaseSerializer
+
+class AddUserDetailsSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
     first_name = serializers.CharField(max_length=255)
     last_name = serializers.CharField(max_length=255)
@@ -8,5 +10,5 @@ class AddUserDetailsSerializer(serializers.Serializer):
     height = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
     weight = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
     
-class FetchUserDetailsSerializer(serializers.Serializer):
+class FetchUserDetailsSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
