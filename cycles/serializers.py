@@ -1,23 +1,28 @@
 from rest_framework import serializers
 
+from utils.helpers import BaseSerializer
 
-class CreatePeriodRecordSerializer(serializers.Serializer):
+
+class CreatePeriodRecordSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
     event = serializers.IntegerField(min_value=1, max_value=2)
+    
 
-class FetchPeriodRecordsSerializer(serializers.Serializer):
+class FetchPeriodRecordsSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
     page = serializers.IntegerField(min_value=1, required=False, default=1)
     rows_per_page = serializers.IntegerField(min_value=10, max_value=100, required=False, default=10)
     start_datetime = serializers.DateTimeField(required=False)
     end_datetime = serializers.DateTimeField(required=False)
     
-class CreateSymptomsRecordSerializer(serializers.Serializer):
+    
+class CreateSymptomsRecordSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
     symptom = serializers.CharField(max_length=200)
     comments = serializers.CharField(max_length=500)
     
-class FetchSymptomsRecordsSerializer(serializers.Serializer):
+    
+class FetchSymptomsRecordsSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
     page = serializers.IntegerField(min_value=1, required=False, default=1)
     rows_per_page = serializers.IntegerField(min_value=10, max_value=100, required=False, default=10)
@@ -25,7 +30,8 @@ class FetchSymptomsRecordsSerializer(serializers.Serializer):
     create_datetime_start = serializers.DateTimeField(required=False)
     create_datetime_end = serializers.DateTimeField(required=False)
     
-class FetchPeriodRecordDetailsSerializer(serializers.Serializer):
+    
+class FetchPeriodRecordDetailsSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
     period_record_id = serializers.CharField(max_length=255)
     

@@ -136,12 +136,12 @@ LOGGING = {
 }
 
 # REST_FRAMEWORK = {
-#     # ... other settings ...
-#     'DEFAULT_RENDERER_CLASSES': [
-#         'period_tracking_BE.middlewares.CustomFlexibleRenderer',
-#         'rest_framework.renderers.BrowsableAPIRenderer',
-#     ],
-#     # 'EXCEPTION_HANDLER': 'path.to.your.custom_exception_handler',
+#     # # ... other settings ...
+#     # 'DEFAULT_RENDERER_CLASSES': [
+#     #     'period_tracking_BE.middlewares.CustomFlexibleRenderer',
+#     #     'rest_framework.renderers.BrowsableAPIRenderer',
+#     # ],
+#     'EXCEPTION_HANDLER': None,
 # }
 
 
