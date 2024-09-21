@@ -11,21 +11,14 @@ from utils.helpers import get_serialized_data, response_obj, validate_token
 from utils.exceptions import CustomException
 from users.serializers import AddUserDetailsSerializer, FetchUserDetailsSerializer
 
-@method_decorator(validate_token, name='post')
 class AddUserDetailsView(APIView):
     add_user_details_serialzier = AddUserDetailsSerializer
     
     def post(self, request):
         try:
             request_body = self.add_user_details_serialzier(data=request.data)
-            
-            ########## HANDLE VALIDATION ERROR ##########
-            if not request_body.is_valid():
-                errors = request_body.errors
-                message = "; ".join([errors[key][0] if key == "non_field_errors" else f"{key} - {errors[key][0]}" for key in errors])
-                return response_obj(success=False, message=message, status_code=status.HTTP_400_BAD_REQUEST)
-            #############################################
-            
+            request_body.is_valid(raise_exception=True)
+
             user_id_hash = get_serialized_data(request_body, 'user_id_hash')
             first_name = get_serialized_data(request_body, 'first_name')
             last_name = get_serialized_data(request_body, 'last_name')
@@ -60,20 +53,14 @@ class AddUserDetailsView(APIView):
             print_exc(e)
             return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-@method_decorator(validate_token, name='post')
+
 class FetchUserDetails(APIView):
     fetch_user_details_serializer = FetchUserDetailsSerializer
     
     def post(self, request):
         try:
             request_body = self.fetch_user_details_serializer(data=request.data)
-            
-            ########## HANDLE VALIDATION ERROR ##########
-            if not request_body.is_valid():
-                errors = request_body.errors
-                message = "; ".join([errors[key][0] if key == "non_field_errors" else f"{key} - {errors[key][0]}" for key in errors])
-                return response_obj(success=False, message=message, status_code=status.HTTP_400_BAD_REQUEST)
-            #############################################
+            request_body.is_valid(raise_exception=True)
             
             user_id_hash =get_serialized_data(request_body, 'user_id_hash')
             
