@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware'
     # 'period_tracking_BE.middlewares.RateLimitMiddleware',
+    'middlewares.auth_middleware.AuthMiddleware',
     'middlewares.exception_middleware.ExceptionMiddleware',
     # 'period_tracking_BE.middlewares.ResponseMiddleware',
 ]
@@ -155,6 +156,13 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+#################################################################
+##################### ALLOWED ENDPOINTS #########################
+#################################################################
+SKIP_AUTH_PATTERNS = [
+    # '/api/v1/auth/',
+]
 
 
 # Static files (CSS, JavaScript, Images)
