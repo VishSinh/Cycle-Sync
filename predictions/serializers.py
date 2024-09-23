@@ -1,11 +1,10 @@
 from rest_framework import serializers
 
-from predictions.models import PeriodPredictions
+from utils.helpers import BaseSerializer
 
-
-class CreatePredictionSerializer(serializers.Serializer):
+class CreatePredictionSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
     user_data = serializers.JSONField()
     
-class CreateCycleStatPredictionSerializer(serializers.Serializer):
+class CreateCycleStatPredictionSerializer(BaseSerializer):
     user_id_hash = serializers.CharField(max_length=255)
