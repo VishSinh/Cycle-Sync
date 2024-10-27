@@ -98,7 +98,7 @@ class AutenticationView(APIView):
             'user_id_hash': active_session.user_id_hash,
             'session_id': active_session.session_id,
         }
-        return APIResponse(data=response_body, status_code=201).response()
+        return response_body, 201 
 
 
     
