@@ -90,9 +90,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'djongo',
         'NAME': 'period_tracking',
-        'ENFORCE_SCHEMA': True,  # Set this to True if you want to enforce schema validation
+        'ENFORCE_SCHEMA': True, 
         'CLIENT': {
-            'host': 'mongodb://localhost:27017/',
+            'host': 'mongodb://mongodb:27017/',
         },
         'CONN_MAX_AGE' : None,
     }
@@ -161,7 +161,7 @@ USE_TZ = True
 ##################### ALLOWED ENDPOINTS #########################
 #################################################################
 SKIP_AUTH_PATTERNS = [
-    # '/api/v1/auth/',
+    '/api/v1/auth/',
 ]
 
 
