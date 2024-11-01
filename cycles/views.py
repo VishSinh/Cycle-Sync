@@ -8,17 +8,16 @@ from django.utils.decorators import method_decorator
 
 from cycles.models import PeriodRecord, CurrentPeriod, SymptomsRecord
 from cycles.serializers import CreatePeriodRecordSerializer, CreateSymptomsRecordSerializer, FetchPeriodRecordDetailsSerializer, FetchPeriodRecordsSerializer, FetchSymptomsRecordsSerializer
-from utils.helpers import format_response, get_serialized_data, response_obj, validate_token
+from utils.helpers import format_response, get_serialized_data
 from utils.exceptions import BadRequest, CustomException
 
 
-@method_decorator(validate_token, name='post')
 class CreatePeriodRecordView(APIView):
     create_period_record_serializer = CreatePeriodRecordSerializer
     
     @format_response
     def post(self, request):
-        request_body = self.create_period_record_serializer(data=request.data)
+        request_body = CreatePeriodRecordSerializer(data=request.data)
         request_body.is_valid(raise_exception=True)
         
         user_id_hash = get_serialized_data(request_body, 'user_id_hash')
@@ -85,7 +84,6 @@ class CreatePeriodRecordView(APIView):
         return response_body, 201
         
 
-@method_decorator(validate_token, name='post')
 class FetchPeriodRecordsView(APIView):
     fetch_period_records_serializer = FetchPeriodRecordsSerializer
     
@@ -139,7 +137,6 @@ class FetchPeriodRecordsView(APIView):
         return response_body
 
 
-@method_decorator(validate_token, name='post')      
 class CreateSymptomsRecordView(APIView):
     create_symptoms_record_serializer = CreateSymptomsRecordSerializer
     
@@ -184,7 +181,6 @@ class CreateSymptomsRecordView(APIView):
         return response_body, 201
         
 
-@method_decorator(validate_token, name='post')       
 class FetchSymptomsRecordsView(APIView):
     fetch_symptoms_records_serializer = FetchSymptomsRecordsSerializer
     
@@ -236,7 +232,6 @@ class FetchSymptomsRecordsView(APIView):
         
         
         
-@method_decorator(validate_token, name='post')  
 class FetchPeriodRecordDetailsView(APIView):
     fetch_period_record_detail_serializer = FetchPeriodRecordDetailsSerializer
     

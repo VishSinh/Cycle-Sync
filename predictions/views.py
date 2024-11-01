@@ -5,10 +5,9 @@ from rest_framework.views import APIView
 from rest_framework import status
 from django.utils.decorators import method_decorator
 
-from utils.helpers import format_response, get_serialized_data, response_obj
+from utils.helpers import format_response, get_serialized_data
 from predictions.models import CycleStatPrediction, PeriodPredictions
 from predictions.serializers import CreateCycleStatPredictionSerializer, CreatePredictionSerializer
-from utils.helpers import validate_token
 from predictions.utils import get_average_cycle_length, get_period_statistics, predict_next_period_start
 
 

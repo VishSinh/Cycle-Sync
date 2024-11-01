@@ -1,11 +1,14 @@
 from datetime import timedelta, timezone
 from django.conf import settings
 from authentication.models import TrackerRegisteredUserRequests, TrackerNonRegisteredUserRequests
-from utils.helpers import APIResponse, response_obj
+from utils.exceptions import TooManyRequests
+from utils.helpers import APIResponse
 from rest_framework import status
 from django.conf import settings
 from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied as DjangoPermissionDenied
+from django.http import HttpRequest, HttpResponse
+
 
 
 # Set up logging for this module
@@ -57,4 +60,4 @@ class RateLimitMiddleware:
             return self.rate_limit_exceeded_response()
 
     def rate_limit_exceeded_response(self):
-        return response_obj(success=False, message='Rate limit exceeded', status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+        return APIResponse(success=False, status_code=status.HTTP_429_TOO_MANY_REQUESTS, error=TooManyRequests('Rate limit exceeded')).response()

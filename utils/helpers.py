@@ -20,42 +20,42 @@ from utils.exceptions import BadRequest
 ---DECORATOR---
 Used to validate the token in the request headers
 '''
-def validate_token(func):
+# def validate_token(func):
     
-    def wrapper_func(request, *args, **kwargs):
-        try:
-            if "Authorization" not in request.headers or "user_id_hash" not in request.data:
-                return response_obj(success=False, message='Auth Credentials not found in request', status_code=status.HTTP_401_UNAUTHORIZED)
+#     def wrapper_func(request, *args, **kwargs):
+#         try:
+#             if "Authorization" not in request.headers or "user_id_hash" not in request.data:
+#                 return response_obj(success=False, message='Auth Credentials not found in request', status_code=status.HTTP_401_UNAUTHORIZED)
             
-            active_session = ActiveSessions.objects.filter(
-                user_id_hash=request.data["user_id_hash"], 
-                session_id=request.headers['Authorization'].split(' ')[1])
+#             active_session = ActiveSessions.objects.filter(
+#                 user_id_hash=request.data["user_id_hash"], 
+#                 session_id=request.headers['Authorization'].split(' ')[1])
 
-            if len(active_session) == 0:
-                return response_obj(success=False, message='Invalid Auth Credentials', status_code=status.HTTP_401_UNAUTHORIZED)
+#             if len(active_session) == 0:
+#                 return response_obj(success=False, message='Invalid Auth Credentials', status_code=status.HTTP_401_UNAUTHORIZED)
             
-            if active_session[0].created_at < datetime.now() - timedelta(minutes=settings.SESSION_EXPIRY):
-                return response_obj(success=False, message='Session expired', status_code=status.HTTP_401_UNAUTHORIZED)
+#             if active_session[0].created_at < datetime.now() - timedelta(minutes=settings.SESSION_EXPIRY):
+#                 return response_obj(success=False, message='Session expired', status_code=status.HTTP_401_UNAUTHORIZED)
         
-            return func(request, *args, **kwargs)
+#             return func(request, *args, **kwargs)
         
-        except Exception as e:
-            print_exc(e)
-            return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         except Exception as e:
+#             print_exc(e)
+#             return response_obj(success=False, message='An error occured', status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-    return wrapper_func 
+#     return wrapper_func 
 
        
-def response_obj(success=True, message='', status_code=200, data={}, error=''):
-    if(not error == ''):
-        print_exc(error)
+# def response_obj(success=True, message='', status_code=200, data={}, error=''):
+#     if(not error == ''):
+#         print_exc(error)
         
-    data = {
-        "success": success,
-        "message": message,
-        "data": data
-    }
-    return Response(data, status=status_code)
+#     data = {
+#         "success": success,
+#         "message": message,
+#         "data": data
+#     }
+#     return Response(data, status=status_code)
 
 
 '''
@@ -140,6 +140,10 @@ Custom Serializer class to inherit from to handle validation errors
 '''
 class BaseSerializer(serializers.Serializer):
     def to_internal_value(self, data):
+        """
+        Override to_internal_value to provide custom error formatting.
+        Converts validation errors to a flat list of error messages.
+        """
         try:
             return super().to_internal_value(data)
         except serializers.ValidationError as exc:
@@ -149,3 +153,14 @@ class BaseSerializer(serializers.Serializer):
                 for error in errors
             ]
             raise BadRequest(json.dumps(error_messages))
+
+    def get_value(self, key: str, default: Any = '') -> Any:
+        """Get a value from validated_data with a default fallback."""
+        return self.validated_data.get(key, default)
+    
+    def require_value(self, key: str) -> Any:
+        """Get a required value from validated_data or raise ValidationError."""
+        try:
+            return self.validated_data[key]
+        except KeyError:
+            raise BadRequest(f'Missing required field: {key}')

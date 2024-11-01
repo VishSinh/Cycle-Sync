@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 from os import getenv as os_getenv
 from dotenv import load_dotenv
@@ -30,6 +31,11 @@ SECRET_KEY = os_getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# settings.py
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# allowed hosts
 ALLOWED_HOSTS = []
 
 
