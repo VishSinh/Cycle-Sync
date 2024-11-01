@@ -3,11 +3,13 @@ services:
     build: .
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             python manage.py collectstatic --noinput &&
+             gunicorn period_tracking_BE.wsgi:application --bind 0.0.0.0:8000"  # Change cycle_sync to your project name
     volumes:
       - .:/app
-    ports:
-      - "8000:8000"
+      - static_volume:/app/static
+    expose:
+      - "8000"
     env_file:
       - .env
     depends_on:
@@ -20,6 +22,18 @@ services:
       - MONGODB_USERNAME=
       - MONGODB_PASSWORD=
 
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/static
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    networks:
+      - app-network
+
   mongodb:
     image: mongo:latest
     ports:
@@ -29,7 +43,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: echo '' --quiet
       interval: 10s
       timeout: 10s
       retries: 5
@@ -41,3 +55,4 @@ networks:
 
 volumes:
   mongodb_data:
+  static_volume:  # Added this

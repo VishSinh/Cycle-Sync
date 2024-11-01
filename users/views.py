@@ -3,29 +3,29 @@ from rest_framework.views import APIView
 from cycles.models import CurrentPeriod
 
 from users.models import  User, UserDetails
+from utils.logger import logger
 from utils.helpers import format_response, get_serialized_data
-from utils.exceptions import CustomException
-from users.serializers import AddUserDetailsSerializer, FetchUserDetailsSerializer
+from utils.exceptions import BadRequest, NotFound
+from users.serializers import AddUserDetailsSerializer
 
 
 class AddUserDetailsView(APIView):
-    add_user_details_serialzier = AddUserDetailsSerializer
     
     @format_response
     def post(self, request):
-        request_body = self.add_user_details_serialzier(data=request.data)
-        request_body.is_valid(raise_exception=True)
+        serializer = AddUserDetailsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        user_id_hash = get_serialized_data(request_body, 'user_id_hash')
-        first_name = get_serialized_data(request_body, 'first_name')
-        last_name = get_serialized_data(request_body, 'last_name')
-        dob = get_serialized_data(request_body, 'dob', None)
-        height = get_serialized_data(request_body, 'height', None)
-        weight = get_serialized_data(request_body, 'weight', None)
+        user_id_hash = request.user_id_hash
+        first_name = serializer.get_value('first_name')
+        last_name = serializer.get_value('last_name')
+        dob = serializer.get_value('dob', None)
+        height = serializer.get_value('height', None)
+        weight = serializer.get_value('weight', None)
         
-        user = User.objects.get(user_id_hash=user_id_hash)
+        user = User.objects.filter(user_id_hash=user_id_hash).first()
         if not user:
-            raise CustomException('Invalid user')
+            raise NotFound('Invalid user')
         
         user_details, created = UserDetails.objects.update_or_create(
             user_id_hash=user_id_hash,
@@ -48,18 +48,14 @@ class AddUserDetailsView(APIView):
 
 
 class FetchUserDetails(APIView):
-    fetch_user_details_serializer = FetchUserDetailsSerializer
 
     @format_response
-    def post(self, request):
-        request_body = self.fetch_user_details_serializer(data=request.data)
-        request_body.is_valid(raise_exception=True)
+    def get(self, request):
+        user_id_hash = request.user_id_hash
         
-        user_id_hash =get_serialized_data(request_body, 'user_id_hash')
-        
-        user_details = UserDetails.objects.get(user_id_hash=user_id_hash)
+        user_details = UserDetails.objects.filter(user_id_hash=user_id_hash).first()
         if not user_details:
-            raise CustomException('User details not found')
+            raise NotFound('User details not found')
         
         response_body = model_to_dict(user_details)
         

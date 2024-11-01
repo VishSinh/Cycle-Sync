@@ -7,15 +7,13 @@ from jwt import encode as jwt_encode
 from django.conf import settings
 
 from users.models import User
-from utils.exceptions import BadRequest
-from utils.helpers import APIResponse, format_response
-from utils.logger import logger
+from utils.exceptions import  Conflict, NotFound
+from utils.helpers import format_response
 from authentication.serializers import AuthenticationSerializer
 from authentication.helpers import create_hashed_value
 
 
 class AutenticationView(APIView):
-    authentication_serializer = AuthenticationSerializer
     
     class AuthType(enum.Enum):
         LOGIN = 1
@@ -31,14 +29,12 @@ class AutenticationView(APIView):
     
     @format_response
     def post(self, request):
-        request_body = self.authentication_serializer(data=request.data)
-        request_body.is_valid(raise_exception=True)
+        serializer = AuthenticationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        auth_type = request_body.validated_data['auth_type']
-        email = request_body.validated_data['email']
-        password = request_body.validated_data['password']
-        
-        logger.info(f'Auth type: {auth_type} Email: {email} Password: {password}')
+        auth_type = serializer.get_value('auth_type')
+        email = serializer.get_value('email')
+        password = serializer.get_value('password')
         
         password_hash = create_hashed_value(password)
 
@@ -47,7 +43,7 @@ class AutenticationView(APIView):
             
             user = User.objects.filter(email=email, password=password_hash)
             if len(user) == 0:
-                raise BadRequest('Invalid email or password')
+                raise NotFound('Invalid email or password')
             
             user = user[0]
             
@@ -57,9 +53,7 @@ class AutenticationView(APIView):
             if len(active_session) > 0:
                 active_session.delete()
                 
-            session_id = self.generate_session_id(
-                payload={'user_id_hash': user_id_hash}
-            )
+            session_id = self.generate_session_id(payload={'user_id_hash': user_id_hash})
             
             active_session = ActiveSessions.objects.create(
                 user_id_hash=user_id_hash, 
@@ -77,7 +71,7 @@ class AutenticationView(APIView):
         ########## SIGNUP ##########
         user = User.objects.filter(email=email)
         if user:
-            raise BadRequest('User already exists')
+            raise Conflict('User already exists')
         
         user  = User.objects.create(email=email, password=password_hash)
         
