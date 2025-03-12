@@ -8,14 +8,14 @@ from django.utils.decorators import method_decorator
 
 from cycles.models import PeriodRecord, CurrentPeriod, SymptomsRecord
 from cycles.serializers import CreatePeriodRecordSerializer, CreateSymptomsRecordSerializer, FetchPeriodRecordDetailsSerializer, FetchPeriodRecordsSerializer, FetchSymptomsRecordsSerializer
-from utils.helpers import format_response, get_serialized_data
-from utils.exceptions import BadRequest, CustomException
+from utils.helpers import forge, get_serialized_data
+from utils.exceptions import BadRequest, NotFound
 
 
 class CreatePeriodRecordView(APIView):
     create_period_record_serializer = CreatePeriodRecordSerializer
     
-    @format_response
+    @forge
     def post(self, request):
         request_body = CreatePeriodRecordSerializer(data=request.data)
         request_body.is_valid(raise_exception=True)
@@ -87,7 +87,7 @@ class CreatePeriodRecordView(APIView):
 class FetchPeriodRecordsView(APIView):
     fetch_period_records_serializer = FetchPeriodRecordsSerializer
     
-    @format_response
+    @forge
     def post(self, request):
         request_body = self.fetch_period_records_serializer(data=request.data)
         request_body.is_valid(raise_exception=True)
@@ -184,7 +184,7 @@ class CreateSymptomsRecordView(APIView):
 class FetchSymptomsRecordsView(APIView):
     fetch_symptoms_records_serializer = FetchSymptomsRecordsSerializer
     
-    @format_response
+    @forge
     def post(self, request):
         request_body = self.fetch_symptoms_records_serializer(data=request.data)
         request_body.is_valid(raise_exception=True)
@@ -235,7 +235,7 @@ class FetchSymptomsRecordsView(APIView):
 class FetchPeriodRecordDetailsView(APIView):
     fetch_period_record_detail_serializer = FetchPeriodRecordDetailsSerializer
     
-    @format_response
+    @forge
     def post(self, request):
         request_body = self.fetch_period_record_detail_serializer(data=request.data)
         request_body.is_valid(raise_exception=True)
@@ -245,7 +245,7 @@ class FetchPeriodRecordDetailsView(APIView):
         
         period_record = PeriodRecord.objects.get(period_record_id=period_record_id)
         if not period_record:
-            raise CustomException('Period record not found')
+            raise NotFound('Period record not found')
         
         period_record = {
             'period_record_id': period_record.period_record_id,

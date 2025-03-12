@@ -4,7 +4,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn period_tracking_BE.wsgi:application --bind 0.0.0.0:8000"  # Change cycle_sync to your project name
+             gunicorn period_tracking_BE.wsgi:application --bind 0.0.0.0:8000"  
     volumes:
       - .:/app
       - static_volume:/app/static
@@ -55,4 +55,4 @@ networks:
 
 volumes:
   mongodb_data:
-  static_volume:  # Added this
+  static_volume: 

@@ -8,9 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
 from functools import wraps
-from utils.logger import logger
 
-from authentication.models import ActiveSessions
 from utils.exceptions import BadRequest
 
 
@@ -72,7 +70,7 @@ def get_serialized_data(serializer, key, default=''):
 ---DECORATOR---
 When wrapped on a function in a view, one can simply return a dictionary or a tuple of dictionary and status code
 '''
-def format_response(func):
+def forge(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)

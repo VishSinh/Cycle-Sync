@@ -1,16 +1,18 @@
+import logging
 from datetime import datetime, timedelta
 from hashlib import sha256
 from django_enumfield import enum
 from rest_framework.views import APIView
-from authentication.models import ActiveSessions
 from jwt import encode as jwt_encode
 from django.conf import settings
 
 from users.models import User
-from utils.exceptions import  Conflict, NotFound
-from utils.helpers import format_response
+from utils.exceptions import  Conflict, NotFound, Unauthorized
+from utils.helpers import forge
 from authentication.serializers import AuthenticationSerializer
 from authentication.helpers import create_hashed_value
+
+logger = logging.getLogger(__name__)
 
 
 class AutenticationView(APIView):
@@ -19,7 +21,7 @@ class AutenticationView(APIView):
         LOGIN = 1
         SIGNUP = 2 
     
-    def generate_session_id(self, payload, expiry_time_minutes=settings.SESSION_EXPIRY):
+    def generate_token(self, payload, expiry_time_minutes=settings.SESSION_EXPIRY):
         secret_key = settings.SESSION_SECRET_KEY 
         expiry_time = datetime.now() + timedelta(minutes=expiry_time_minutes)
         payload['exp'] = expiry_time
@@ -27,7 +29,7 @@ class AutenticationView(APIView):
         
         return token
     
-    @format_response
+    @forge
     def post(self, request):
         serializer = AuthenticationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -43,27 +45,17 @@ class AutenticationView(APIView):
             
             user = User.objects.filter(email=email, password=password_hash)
             if len(user) == 0:
-                raise NotFound('Invalid email or password')
+                raise Unauthorized('Invalid email or password')
             
             user = user[0]
             
             user_id_hash = user.user_id_hash
-            
-            active_session = ActiveSessions.objects.filter(user_id_hash=user_id_hash)
-            if len(active_session) > 0:
-                active_session.delete()
                 
-            session_id = self.generate_session_id(payload={'user_id_hash': user_id_hash})
-            
-            active_session = ActiveSessions.objects.create(
-                user_id_hash=user_id_hash, 
-                session_id=session_id
-            )
+            token = self.generate_token(payload={'user_id_hash': user_id_hash})
             
             response_body = {
                 'message': 'Login successful',
-                'user_id_hash': active_session.user_id_hash,
-                'session_id': active_session.session_id,
+                'token': token,
             }
             
             return response_body
@@ -82,17 +74,23 @@ class AutenticationView(APIView):
         user.save()
 
         # Generate session key
-        session_id = self.generate_session_id(payload={'user_id_hash': user.user_id_hash})
+        token = self.generate_token(payload={'user_id_hash': user.user_id_hash})
         
-        # Create active session
-        active_session = ActiveSessions.objects.create(user_id_hash=user.user_id_hash, session_id=session_id)
 
         response_body = {
             'message': 'User created successfully',
-            'user_id_hash': active_session.user_id_hash,
-            'session_id': active_session.session_id,
+            'user_id_hash': user.user_id_hash,
+            'token': token,
         }
+        
         return response_body, 201 
 
 
     
+class PingView(APIView):
+    
+    @forge
+    def get(self, request):
+        logger.info('Ping')
+        logger.info(request.user_obj.__dict__)
+        return {'message': 'Pong'}

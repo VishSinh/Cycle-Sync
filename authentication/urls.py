@@ -1,7 +1,8 @@
 from django.urls import path
 
-from authentication.views import AutenticationView
+from authentication.views import AutenticationView, PingView
 
 urlpatterns = [
-    path('', AutenticationView.as_view(), name='authenticate'),
+    path('auth/', AutenticationView.as_view(), name='authenticate'),
+    path('ping/', PingView.as_view(), name='ping'),
 ]

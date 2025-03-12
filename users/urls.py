@@ -1,8 +1,7 @@
 from django.urls import path
 
-from users.views import AddUserDetailsView, FetchUserDetails
+from users.views import UserDetailsView
 
 urlpatterns = [
-    path('details/add/', AddUserDetailsView.as_view(), name='add_user_details'),
-    path('details/fetch/', FetchUserDetails.as_view(), name='fetch_user_details'),
+    path('details/', UserDetailsView.as_view(), name='user_details'),
 ]

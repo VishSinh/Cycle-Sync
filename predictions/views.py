@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 from django.utils.decorators import method_decorator
 
-from utils.helpers import format_response, get_serialized_data
+from utils.helpers import forge, get_serialized_data
 from predictions.models import CycleStatPrediction, PeriodPredictions
 from predictions.serializers import CreateCycleStatPredictionSerializer, CreatePredictionSerializer
 from predictions.utils import get_average_cycle_length, get_period_statistics, predict_next_period_start
@@ -14,7 +14,7 @@ from predictions.utils import get_average_cycle_length, get_period_statistics, p
 class CreatePredictionView(APIView):
     create_prediction_serializer = CreatePredictionSerializer
     
-    @format_response
+    @forge
     def post(self, request):
         request_body = self.create_prediction_serializer(data=request.data)
         request_body.is_valid(raise_exception=True)           
@@ -59,7 +59,7 @@ class CreatePredictionView(APIView):
 class CreateCycleStatPredictionView(APIView):
     create_cycle_stat_prediction_serializer = CreateCycleStatPredictionSerializer
 
-    @format_response
+    @forge
     def post(self, request):
         request_body = self.create_cycle_stat_prediction_serializer(data=request.data)
         request_body.is_valid(raise_exception=True) 

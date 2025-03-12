@@ -3,55 +3,16 @@ from rest_framework.views import APIView
 from cycles.models import CurrentPeriod
 
 from users.models import  User, UserDetails
-from utils.logger import logger
-from utils.helpers import format_response, get_serialized_data
+from utils.helpers import forge, get_serialized_data
 from utils.exceptions import BadRequest, NotFound
-from users.serializers import AddUserDetailsSerializer
+from users.serializers import AddUserDetailsSerializer, UserDetailsPatchSerializer
 
 
-class AddUserDetailsView(APIView):
+class UserDetailsView(APIView):
     
-    @format_response
-    def post(self, request):
-        serializer = AddUserDetailsSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        user_id_hash = request.user_id_hash
-        first_name = serializer.get_value('first_name')
-        last_name = serializer.get_value('last_name')
-        dob = serializer.get_value('dob', None)
-        height = serializer.get_value('height', None)
-        weight = serializer.get_value('weight', None)
-        
-        user = User.objects.filter(user_id_hash=user_id_hash).first()
-        if not user:
-            raise NotFound('Invalid user')
-        
-        user_details, created = UserDetails.objects.update_or_create(
-            user_id_hash=user_id_hash,
-            defaults={
-                'first_name': first_name,
-                'last_name': last_name,
-                'dob': dob,
-                'height': height,
-                'weight': weight
-            }
-        )
-
-        user_details.save()
-        
-        response_body = model_to_dict(user_details)
-        message = 'User details added successfully' if created else 'User details updated successfully'
-        code = 201 if created else 200
-        response_body['message'] = message 
-        return  response_body, code
-
-
-class FetchUserDetails(APIView):
-
-    @format_response
+    @forge
     def get(self, request):
-        user_id_hash = request.user_id_hash
+        user_id_hash = request.user_obj.user_id_hash
         
         user_details = UserDetails.objects.filter(user_id_hash=user_id_hash).first()
         if not user_details:
@@ -71,5 +32,66 @@ class FetchUserDetails(APIView):
             response_body['current_period_record_id']  = None
             response_body['last_period_record_id'] = None
 
-        return response_body       
+        return response_body  
+    
+    @forge
+    def post(self, request):
+        serializer = AddUserDetailsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_id_hash = request.user_obj.user_id_hash
+        first_name = serializer.get_value('first_name')
+        last_name = serializer.get_value('last_name')
+        dob = serializer.get_value('dob', None)
+        height = serializer.get_value('height', None)
+        weight = serializer.get_value('weight', None)
+        
+        user = User.objects.filter(user_id_hash=user_id_hash).first()
+        if not user:
+            raise NotFound('Invalid user')
+        
+        user_details = UserDetails.objects.create(
+            user_id_hash=user_id_hash,
+            first_name=first_name,
+            last_name=last_name,
+            dob=dob,
+            height=height,
+            weight=weight
+        )
+        
+        return {'message': 'User details added successfully'}
+    
+    
+    @forge
+    def patch(self, request):
+        serializer = UserDetailsPatchSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        first_name = serializer.get_value('first_name', None)
+        last_name = serializer.get_value('last_name', None)
+        dob = serializer.get_value('dob', None)
+        height = serializer.get_value('height', None)
+        weight = serializer.get_value('weight', None)
+        
+        user_id_hash = request.user_obj.user_id_hash
+        user_details = UserDetails.objects.filter(user_id_hash=user_id_hash).first()
+        if not user_details:
+            raise NotFound('User details not found')
+        
+        if first_name:
+            user_details.first_name = first_name
+        if last_name:
+            user_details.last_name = last_name
+        if dob:
+            user_details.dob = dob
+        if height:
+            user_details.height = height
+        if weight:
+            user_details.weight = weight
+            
+        user_details.save()
+        
+        return {'message': 'User details updated successfully'}
+
+         
        

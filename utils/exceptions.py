@@ -1,10 +1,4 @@
-from rest_framework.exceptions import APIException
 from rest_framework import status
-
-
-class CustomException(Exception):
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    message = 'An error occured'
 
 
 class BadRequest(Exception):
@@ -30,3 +24,13 @@ class NotFound(Exception):
 class Conflict(Exception):
     status_code = status.HTTP_409_CONFLICT
     message = 'The request conflicts with the current state of the resource'
+    
+
+class Forbidden(Exception):
+    status_code = status.HTTP_403_FORBIDDEN
+    message = 'You are not authorized to access this resource'
+    
+
+class InternalServerError(Exception):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    message = 'An internal server error occurred'
