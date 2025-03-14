@@ -16,8 +16,8 @@ class TooManyRequests(Exception):
     message = 'You have exceeded the rate limit'
     
 
-class NotFound(Exception):
-    status_code = status.HTTP_404_NOT_FOUND
+class ResourceNotFound(Exception):
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     message = 'The requested resource was not found'
     
 

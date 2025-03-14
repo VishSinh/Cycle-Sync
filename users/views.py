@@ -4,7 +4,7 @@ from cycles.models import CurrentPeriod
 
 from users.models import  User, UserDetails
 from utils.helpers import forge, get_serialized_data
-from utils.exceptions import BadRequest, NotFound
+from utils.exceptions import BadRequest, ResourceNotFound
 from users.serializers import AddUserDetailsSerializer, UserDetailsPatchSerializer
 
 
@@ -16,7 +16,7 @@ class UserDetailsView(APIView):
         
         user_details = UserDetails.objects.filter(user_id_hash=user_id_hash).first()
         if not user_details:
-            raise NotFound('User details not found')
+            raise ResourceNotFound('User details not found')
         
         response_body = model_to_dict(user_details)
         
@@ -48,9 +48,9 @@ class UserDetailsView(APIView):
         
         user = User.objects.filter(user_id_hash=user_id_hash).first()
         if not user:
-            raise NotFound('Invalid user')
+            raise ResourceNotFound('Invalid user')
         
-        user_details = UserDetails.objects.create(
+        UserDetails.objects.create(
             user_id_hash=user_id_hash,
             first_name=first_name,
             last_name=last_name,
@@ -76,7 +76,7 @@ class UserDetailsView(APIView):
         user_id_hash = request.user_obj.user_id_hash
         user_details = UserDetails.objects.filter(user_id_hash=user_id_hash).first()
         if not user_details:
-            raise NotFound('User details not found')
+            raise ResourceNotFound('User details not found')
         
         if first_name:
             user_details.first_name = first_name

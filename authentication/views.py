@@ -7,7 +7,7 @@ from jwt import encode as jwt_encode
 from django.conf import settings
 
 from users.models import User
-from utils.exceptions import  Conflict, NotFound, Unauthorized
+from utils.exceptions import  Conflict, ResourceNotFound, Unauthorized
 from utils.helpers import forge
 from authentication.serializers import AuthenticationSerializer
 from authentication.helpers import create_hashed_value

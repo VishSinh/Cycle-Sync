@@ -1,9 +1,12 @@
-from datetime import datetime, timedelta
+# from datetime import datetime, timedelta
 import json
 from traceback import print_exc
 from typing import Any, Dict, Optional
 from django.conf import settings
 from django.http import JsonResponse
+from django.db import models
+from django.utils import timezone
+import pytz
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
@@ -11,7 +14,7 @@ from functools import wraps
 
 from utils.exceptions import BadRequest
 
-
+IST = pytz.timezone("Asia/Kolkata")  
 
 
 '''
@@ -94,41 +97,27 @@ def forge(func):
 Custom Response Class to format the response in a consistent manner
 '''
 class APIResponse:
-    def __init__(self, success: bool = True, status_code: int = 200, data: Optional[Dict[str, Any]] = None, error: Optional[Exception] = None):
+    def __init__(self, success: bool = True, status_code: int = 200, data: Optional[Any] = None, error: Optional[Exception] = None):
         self.success = success
         self.status_code = status_code
-        self.data = data or {}
+        self.data = data if data is not None else {}
         self.error = error
 
-    def response(self, correlation_id: Optional[str] = None) -> JsonResponse: 
-        # if self.error:
-        #     logger.error(f"Error occurred: {str(self.error)}")
+    def _format_error(self) -> Dict[str, str]:
+        if not self.error:
+            return {"code": "", "message": "", "details": ""}
         
-        response_data: Dict[str, Any] = {
-            "success": self.success,
-            "data": self.data
-        }
+        return {"code": self.error.__class__.__name__, "message": getattr(self.error, "message", "An error occurred"), "details": getattr(self.error, "details", str(self.error))}
 
-        if self.error:
-            response_data["error"] = {
-                "code": self.error.__class__.__name__,
-                "message": str(self.error.message) if hasattr(self.error, "message") else 'An error occurred',
-                "details": str(self.error.details) if hasattr(self.error, "details") else str(self.error)
-            }
-        else :
-            response_data["error"] = {
-                "code": "",
-                "message": "",
-                "details": ""
-            }
+    def response(self, correlation_id: Optional[str] = None) -> JsonResponse:
+        response_data = {"success": self.success, "data": self.data, "error": self._format_error()}
 
         if correlation_id:
             response_data["correlation_id"] = correlation_id
 
-
         return JsonResponse(response_data, status=self.status_code)
 
-    def __str__(self) -> str:
+    def __str__(self) -> str: 
         return f"APIResponse(success={self.success}, status_code={self.status_code}, data={self.data}, error={self.error})"
 
 
@@ -162,3 +151,19 @@ class BaseSerializer(serializers.Serializer):
             return self.validated_data[key]
         except KeyError:
             raise BadRequest(f'Missing required field: {key}')
+        
+
+def convert_to_utc(date_time):
+    """Converts a datetime to UTC.
+    
+    - If naive, assumes Django's TIME_ZONE and makes it timezone-aware.
+    - If aware but not UTC, converts it to UTC.
+    - If already UTC, returns it unchanged.
+    """
+    
+    # If datetime is naive, assume it's in Django’s TIME_ZONE and make it aware
+    if timezone.is_naive(date_time):
+        date_time = timezone.make_aware(date_time, timezone.get_current_timezone())
+    
+    # Convert to UTC if it’s not already UTC
+    return date_time.astimezone(timezone.utc)
