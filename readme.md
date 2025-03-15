@@ -8,7 +8,7 @@ Period Tracking Backend is a Django project designed to provide backend function
 - User details management: Enables users to update their personal information such as name, date of birth, and physical attributes.
 - Period tracking: Facilitates the tracking of menstrual cycles, including start and end dates, cycle lengths, and symptoms.
 - Data retrieval: Provides endpoints to fetch user-specific period data for analysis or visualization.
-- Period Prediction: Utilizes historical period data to forecast future menstrual cycles, aiding users in planning and preparation.
+- Period Prediction: Utilizes historical period data and an ML model to forecast future menstrual cycles, aiding users in planning and preparation.
 
 ## Requirements
 
@@ -37,41 +37,19 @@ git clone https://github.com/VishSinh/Period-Tracker.git
 - Navigate to the project directory:
 
 ```bash
-cd period-tracker
+cd Cycle-Sync
 ```
 
-- Install dependencies:
+- Build and run the project locally:
 
 ```bash
-pip3 install -r requirements.txt
+make build-and-run-local
 ```
 
-- Make command exceutable:
+- For additional commands, use:
 
 ```bash
-chmod +x start_server.sh
-```
-
-- Start server in DEBUG mode:
-
-```bash
-./start_server.sh
-```
-
-- Start server in PRODUCTION mode
-
-```bash
-./start_server.sh true
-```
-
-### Start Celery
-
-```bash
-celery -A period_tracking_BE worker --loglevel=info
-```
-
-```bash
-celery -A period_tracking_BE beat --loglevel=info
+make help
 ```
 
 ## Environment Variables
