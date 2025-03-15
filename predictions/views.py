@@ -1,87 +1,38 @@
-from pathlib import Path
-from traceback import print_exc
-from joblib import load as joblib_load
 from rest_framework.views import APIView
-from rest_framework import status
-from django.utils.decorators import method_decorator
+from logging import getLogger
 
-from utils.helpers import forge, get_serialized_data
-from predictions.models import CycleStatPrediction, PeriodPredictions
-from predictions.serializers import CreateCycleStatPredictionSerializer, CreatePredictionSerializer
-from predictions.utils import get_average_cycle_length, get_period_statistics, predict_next_period_start
+from cycles.models import PeriodRecord
+from utils.helpers import forge
+from predictions.utils import PeriodPredictionService
+
+logger = getLogger(__name__)
 
 
-class CreatePredictionView(APIView):
-    create_prediction_serializer = CreatePredictionSerializer
+class PredictionView(APIView):
     
     @forge
-    def post(self, request):
-        request_body = self.create_prediction_serializer(data=request.data)
-        request_body.is_valid(raise_exception=True)           
-
-        user_id_hash = get_serialized_data(request_body, 'user_id_hash')
-        user_data = get_serialized_data(request_body, 'user_data')
+    def get(self, request):
         
-        features = [
-            user_data['CycleNumber'],
-            user_data['LengthofCycle'],
-            user_data['LengthofLutealPhase'],
-            user_data['TotalNumberofHighDays'],
-            user_data['TotalNumberofPeakDays'],
-            user_data['UnusualBleeding'],
-            user_data['PhasesBleeding'],
-            user_data['IntercourseInFertileWindow'],
-            user_data['Age'],
-            user_data['BMI'],
-            user_data['Method']
-        ]
+        user_id_hash = request.user_obj.user_id_hash
         
-        model_path = Path(__file__).resolve().parents[2] / 'DecisionTreeForOvulationDayPrediction.pkl'
-        model = joblib_load(model_path)
+        period_records = PeriodRecord.objects.filter(user_id_hash=user_id_hash, current_status=PeriodRecord.CurrentStatus.COMPLETED.value)
         
-        prediction_data = model.predict([features])
+        period_history = []
+        for period_record in period_records:
+            period_history.append({
+                'start': period_record.start_datetime,
+                'end': period_record.end_datetime
+            })
         
-        period_prediction = PeriodPredictions.objects.create(
-            user_id_hash=user_id_hash,
-            user_data=user_data,
-            prediction_data=prediction_data
-        )
-        period_prediction.save()
+            
+        prediction_service = PeriodPredictionService()
+        prediction = prediction_service.predict_next_period(period_history)
         
-        response_body = {
-            "user_data": user_data,
-            "prediction_data": prediction_data
+        logger.info(f"Prediction data generated successfully:\n{prediction}")
+        
+        return {
+            "message": "Prediction data generated successfully",
+            "prediction_data": prediction
         }
 
-        return response_body
-
-
-class CreateCycleStatPredictionView(APIView):
-    create_cycle_stat_prediction_serializer = CreateCycleStatPredictionSerializer
-
-    @forge
-    def post(self, request):
-        request_body = self.create_cycle_stat_prediction_serializer(data=request.data)
-        request_body.is_valid(raise_exception=True) 
-        
-        user_id_hash = get_serialized_data(request_body, 'user_id_hash')
-        
-        average_cycle_length = get_average_cycle_length(user_id_hash)
-        period_statistics = get_period_statistics(user_id_hash)
-        next_period_prediction = predict_next_period_start(user_id_hash)
-
-        cycle_stat_prediction = CycleStatPrediction.objects.create(
-            user_id_hash=user_id_hash,
-            average_cycle_length=average_cycle_length,
-            period_statistics=period_statistics,
-            next_period_prediction=next_period_prediction
-        )
-        
-        response_body = {
-            'average_cycle_length': average_cycle_length,
-            'period_statistics': period_statistics,
-            'next_period_prediction': next_period_prediction
-        }
-
-        return response_body
 
