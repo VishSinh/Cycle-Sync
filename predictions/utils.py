@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from logging import getLogger
 
+from cycles.models import PeriodRecord
+
 logger = getLogger(__name__)
 
 class PeriodPredictionService:
@@ -38,7 +40,7 @@ class PeriodPredictionService:
         """
         # Need at least 4 periods to calculate 3 cycles
         if len(period_history) < 4:
-            raise ValueError("Need at least 4 periods of history")
+            raise ValueError("Need at least 4 periods to make a prediction")
         
         # Convert string dates to datetime objects if needed
         for period in period_history:
@@ -123,4 +125,22 @@ class PeriodPredictionService:
             }
             
         except Exception as e:
-            return {'error': str(e)}
+            logger.error(f"Error generating prediction: {e}")
+            return None
+        
+        
+def get_next_period_start_date(user_id_hash):
+    period_records = PeriodRecord.objects.filter(user_id_hash=user_id_hash, current_status=PeriodRecord.CurrentStatus.COMPLETED.value)
+        
+    period_history = []
+    for period_record in period_records:
+        period_history.append({
+            'start': period_record.start_datetime,
+            'end': period_record.end_datetime
+        })
+    
+        
+    prediction_service = PeriodPredictionService()
+    prediction = prediction_service.predict_next_period(period_history)
+    logger.info(f"Prediction data generated successfully:\n{prediction}")
+    return prediction['next_period_start'] if prediction else None

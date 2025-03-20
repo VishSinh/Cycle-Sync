@@ -1,15 +1,18 @@
+import json
 from logging import getLogger
+from django.conf import settings
+from django.forms import model_to_dict
 from django.utils import timezone
 from datetime import datetime, timedelta
-from django.forms import model_to_dict
 from rest_framework.views import APIView
-from rest_framework import status
 from django.db.models import Q
-from django.utils.decorators import method_decorator
+from google import genai
 
-from cycles.models import PeriodRecord, CurrentPeriod, SymptomsRecord
+from cycles.models import PeriodRecord, CurrentPeriod, Phases, SymptomsRecord, PhaseInfo, ExerciseDetails, LifestyleAdjustment, NutrientDetails, Recommendations, HealthWarning, Phases, RecommendationsNutrition, RecommendationsExercise, RecommendationsSelfCare, NutrientDetailsKeyNutrient
 from cycles.serializers import CreatePeriodRecordSerializer, CreateSymptomsRecordSerializer, FetchPeriodRecordDetailsSerializer, FetchSymptomsRecordsSerializer
-from utils.helpers import convert_to_utc, forge, get_serialized_data
+from cycles.utils import get_avg_cycle_length, get_avg_period_length, get_current_phase, get_days_until_next_phase
+from predictions.utils import PeriodPredictionService, get_next_period_start_date
+from utils.helpers import convert_to_utc, forge
 from utils.exceptions import BadRequest, Conflict, ResourceNotFound
 
 logger = getLogger(__name__)
@@ -86,6 +89,7 @@ class PeriodRecordView(APIView):
                 'period_record_id': period_record['period_record_id'],
                 'current_status': period_record['current_status'],
                 'start_datetime': period_record['start_datetime'],
+                'duration_days': (period_record['end_datetime'] - period_record['start_datetime']).days,
                 'end_datetime': period_record['end_datetime']
             }
             for period_record in period_records
@@ -262,10 +266,346 @@ class SymptomsRecordView(APIView):
             'symptom': symptom_record.symptom,
             'comments': symptom_record.comments,
             'symptom_occurence': symptom_record.symptom_occurence,
-            'period_record_id': symptom_record.period_record_id 
+            'period_record_id': symptom_record.period_record_id ,
+            'created_datetime': symptom_record.created_datetime
         }
         
         response_body['message'] = 'Symptoms record saved successfully'
         
         return response_body, 201
 
+
+class DashboardView(APIView):
+
+    @forge
+    def get(self, request):
+        user_id_hash = request.user_obj.user_id_hash
+        
+        current_period = CurrentPeriod.objects.filter(user_id_hash=user_id_hash).first()
+        last_period_record_id = current_period.last_period_record_id
+        last_period_record = PeriodRecord.objects.filter(period_record_id=last_period_record_id).first()
+        last_period_start = last_period_record.start_datetime if last_period_record else None
+
+        avg_cycle_length = get_avg_cycle_length(user_id_hash)
+        
+        phase, cycle_days = get_current_phase(user_id_hash)
+        
+        days_until_next_phase = get_days_until_next_phase(phase, cycle_days, avg_cycle_length)
+        logger.info(f"Days until next phase: {days_until_next_phase}")
+        next_period_start = get_next_period_start_date(user_id_hash)
+        
+        days_until_next_period = (next_period_start - timezone.now()).days if next_period_start else None
+
+        response = {
+            "message": "Dashboard data fetched successfully",
+            "last_period_start": last_period_start,
+            "avg_cycle_length": avg_cycle_length,
+            "current_phase": phase,
+            "next_period_start": next_period_start,
+            "days_until_next_phase": days_until_next_phase,
+            "days_until_next_period": days_until_next_period
+        }
+        
+        return response
+    
+
+class DashboardDetailsView(APIView):
+    
+    @forge
+    def get(self, request):
+        if not (phase:=request.query_params.get('phase', None)):
+            raise BadRequest('Phase not provided')
+        
+        phase = int(phase)
+        
+        # Fetch all details for the provided phase
+        phase_info = PhaseInfo.objects.filter(phase_type=phase).first()
+        exercise_details = ExerciseDetails.objects.filter(phase=phase)
+        lifestyle_adjustment = LifestyleAdjustment.objects.filter(phase=phase).first()
+        health_warning = HealthWarning.objects.filter(phase=phase).first()
+        recommendations = Recommendations.objects.filter(phase=phase).first()
+        nutrient_details = NutrientDetails.objects.filter(phase=phase).first()
+        
+        return {
+            "message": "Dashboard details fetched successfully",
+            "phase_info": model_to_dict(phase_info) or {},
+            "exercise_details": [model_to_dict(exercise) for exercise in exercise_details],
+            "lifestyle_adjustments": model_to_dict(lifestyle_adjustment) or {},
+            "health_warning": model_to_dict(health_warning) or {},
+            "recommendations": model_to_dict(recommendations) or {},
+            "nutrient_details": model_to_dict(nutrient_details) or {}
+        }
+        
+        
+class CurrentStatusView(APIView):
+    
+    @forge
+    def get(self, request):
+        
+        user_id_hash = request.user_obj.user_id_hash
+        
+        current_period = CurrentPeriod.objects.filter(user_id_hash=user_id_hash).first()
+        
+        if not current_period:
+            raise BadRequest('Current period not found')
+        
+        avg_cycle_length = get_avg_cycle_length(user_id_hash)
+        
+        avg_period_length = get_avg_period_length(user_id_hash)
+        
+        next_period_start = get_next_period_start_date(user_id_hash)
+        
+        response = {
+            "message": "Current period status fetched successfully",
+            "current_period_record_id": current_period.current_period_record_id,
+            "last_period_record_id": current_period.last_period_record_id,
+            "avg_cycle_length": avg_cycle_length,
+            "avg_period_length": avg_period_length,
+            "next_period_start": next_period_start
+        }
+        
+        return response
+        
+    
+ 
+class GetPhaseDetailsView(APIView):
+    
+    @forge
+    def get(self, request):
+        
+        if not (phase:=request.query_params.get('phase', None)):
+            raise BadRequest('Phase not provided')
+        
+        phase = int(phase)
+        
+        # if not (secret_token:=request.query_params.get('secret_token', None)):
+        #     raise BadRequest('Secret token not provided')
+        
+        # secret_token = settings.PHASE_DETAILS_SECRET_TOKEN
+        # if secret_token != secret_token:
+        #     raise BadRequest('Invalid secret token provided')
+        
+        if phase == Phases.MENSTRUAL:
+            phase = "Menstrual"
+        elif phase == Phases.FOLLICULAR:
+            phase = "Follicular"
+        elif phase == Phases.OVULATION:
+            phase = "Ovulation"
+        elif phase == Phases.LUTEAL:
+            phase = "Luteal"
+        else:
+            raise BadRequest('Invalid phase provided')
+        
+        # logger.info(f"{PROMPT}\nThe phase to analyze is: {phase}")
+        
+        
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[f"{PROMPT}\nThe phase to analyze is: {phase}"],
+        )
+        
+        # logger.info(f"Response from Gemini API: \n{response}")
+        
+        raw_text = response.candidates[0].content.parts[0].text
+
+        # Clean and parse the JSON
+        clean_text = raw_text.replace("```json", "").replace("```", "").strip()
+        parsed_json = json.loads(clean_text)
+        
+        # logger.info(f"Parsed JSON: \n{parsed_json}")
+        
+        current_phase = parsed_json['current_phase']
+        recommendations = parsed_json['recommendations']
+        exercise_details = parsed_json['exercise_details']
+        nutrition_details = parsed_json['nutrition_details']
+        lifestyle_adjustments = parsed_json['lifestyle_adjustments']
+        when_to_seek_help = parsed_json['when_to_seek_help']
+        
+        
+        logger.info(f"Current phase: \n{current_phase}")
+        logger.info(f"Recommendations: \n{recommendations}")
+        logger.info(f"Exercise details: \n{exercise_details}")
+        logger.info(f"Nutrition details: \n{nutrition_details}")
+        logger.info(f"Lifestyle adjustments: \n{lifestyle_adjustments}")
+        logger.info(f"When to seek help: \n{when_to_seek_help}")
+        
+        
+        # Map the phase name to enum value
+        phase_mapping = {
+            "Menstrual": Phases.MENSTRUAL,
+            "Follicular": Phases.FOLLICULAR, 
+            "Ovulation": Phases.OVULATION,
+            "Luteal": Phases.LUTEAL
+        }
+        phase_type = phase_mapping[phase]
+        
+        # Clear existing data for this phase
+        logger.info(f"Clearing existing data for phase: {phase} (phase_type={phase_type})")
+        PhaseInfo.objects.filter(phase_type=phase_type).delete()
+        ExerciseDetails.objects.filter(phase=phase_type).delete()
+        LifestyleAdjustment.objects.filter(phase=phase_type).delete()
+        HealthWarning.objects.filter(phase=phase_type).delete()
+        Recommendations.objects.filter(phase=phase_type).delete()
+        NutrientDetails.objects.filter(phase=phase_type).delete()
+        
+        # Save PhaseInfo
+        phase_info = PhaseInfo.objects.create(
+            phase_type=phase_type,
+            name=current_phase['name'],
+            days_in_cycle=current_phase['days_in_cycle'],
+            hormone_changes=current_phase['hormone_changes'],
+            common_symptoms=current_phase['common_symptoms'],
+            description=current_phase['description']
+        )
+        
+        # Save Exercise Details
+        exercise_objs = []
+        for exercise in exercise_details:
+            exercise_obj = ExerciseDetails.objects.create(
+                phase=phase_type,
+                name=exercise['name'],
+                description=exercise['description'],
+                benefits_during_phase=exercise['benefits_during_phase'],
+                difficulty=exercise['difficulty'],
+                duration=exercise['duration'],
+                modifications=exercise['modifications']
+            )
+            exercise_objs.append(exercise_obj)
+        
+        # Save Lifestyle Adjustments
+        lifestyle_obj = LifestyleAdjustment.objects.create(
+            phase=phase_type,
+            work=lifestyle_adjustments['work'],
+            social=lifestyle_adjustments['social'],
+            relationships=lifestyle_adjustments['relationships']
+        )
+        
+        # Save Health Warnings
+        health_warning = HealthWarning.objects.create(
+            phase=phase_type,
+            when_to_seek_help=when_to_seek_help
+        )
+        
+        # Create Recommendations objects as dictionaries (not instances of abstract models)
+        nutrition_rec = {
+            'foods_to_emphasize': recommendations['nutrition']['foods_to_emphasize'],
+            'foods_to_minimize': recommendations['nutrition']['foods_to_minimize'],
+            'nutrients_to_focus_on': recommendations['nutrition']['nutrients_to_focus_on']
+        }
+        
+        exercise_rec = {
+            'recommended_types': recommendations['exercise']['recommended_types'],
+            'intensity_level': recommendations['exercise']['intensity_level'],
+            'exercise_to_avoid': recommendations['exercise'].get('exercises_to_avoid', [])
+        }
+        
+        self_care_rec = {
+            'physical': recommendations['self_care']['physical'],
+            'emotional': recommendations['self_care']['emotional'],
+            'sleep': recommendations['self_care']['sleep']
+        }
+        
+        # Create and save Recommendations
+        recs = Recommendations.objects.create(
+            phase=phase_type,
+            nutrition=[nutrition_rec],
+            exercise=[exercise_rec],
+            self_care=[self_care_rec]
+        )
+        
+        # Process key nutrients as dictionaries
+        key_nutrients = []
+        for nutrient_data in nutrition_details['key_nutrients']:
+            key_nutrient = {
+                'nutrient': nutrient_data['nutrient'],
+                'benefits_during_phase': nutrient_data['benefits_during_phase'],
+                'food_sources': nutrient_data['food_sources']
+            }
+            key_nutrients.append(key_nutrient)
+        
+        # Create and save Nutrient Details
+        nutrient_details_obj = NutrientDetails.objects.create(
+            phase=phase_type,
+            key_nutrient=key_nutrients,
+            meal_plan=nutrition_details['meal_plan'],
+            hydration_tips=nutrition_details['hydration_tips'],
+            supplement_recommendations=nutrition_details['supplement_recommendations']
+        )
+        
+        response = {
+            "message": f"Phase details for {phase} phase fetched and saved successfully",
+            # "phase_info": model_to_dict(phase_info),
+            # "recommendations": model_to_dict(recs),
+            "when_to_seek_help": when_to_seek_help
+        }
+        
+        return response
+
+PROMPT = """
+Please provide detailed information about the {PHASE} phase of the menstrual cycle in JSON format.
+
+Return a structured JSON object with the following properties:
+
+{
+    "current_phase": {
+        "name": "string",
+        "days_in_cycle": "string",
+        "hormone_changes": "string",
+        "common_symptoms": ["array", "of", "symptoms"],
+        "description": "string"
+    },
+    "recommendations": {
+        "nutrition": {
+            "foods_to_emphasize": ["array", "of", "recommended", "foods"],
+            "foods_to_minimize": ["array", "of", "foods", "to", "avoid"],
+            "nutrients_to_focus_on": ["array", "of", "key", "nutrients"],
+            "meal_ideas": ["array", "of", "meal", "suggestions"]
+        },
+        "exercise": {
+            "recommended_types": ["array", "of", "exercise", "names"],
+            "intensity_level": "string",
+            "duration_guidelines": "string",
+            "exercises_to_avoid": ["array", "of", "exercises", "to", "avoid"]
+        },
+        "self_care": {
+            "physical": ["array", "of", "physical", "self-care", "activities"],
+            "emotional": ["array", "of", "emotional", "self-care", "activities"],
+            "sleep": ["array", "of", "sleep", "recommendations"]
+        }
+    },
+    "exercise_details": [
+        {
+            "name": "string",
+            "description": "string",
+            "benefits_during_phase": "string",
+            "difficulty": "easy|medium|hard",
+            "duration": "string",
+            "modifications": "string"
+        }
+    ],
+    "nutrition_details": {
+        "key_nutrients": [
+            {
+            "nutrient": "string",
+            "benefits_during_phase": "string",
+            "food_sources": ["array", "of", "sources"]
+            }
+        ],
+        "meal_plan": {
+            "breakfast_ideas": ["array", "of", "breakfast", "ideas"],
+            "lunch_ideas": ["array", "of", "lunch", "ideas"],
+            "dinner_ideas": ["array", "of", "dinner", "ideas"],
+            "snack_ideas": ["array", "of", "snack", "ideas"]
+        },
+        "hydration_tips": "string",
+        "supplement_recommendations": ["array", "of", "supplements", "if", "applicable"]
+    },
+    "lifestyle_adjustments": {
+        "work": ["array", "of", "workplace", "adjustments"],
+        "social": ["array", "of", "social", "considerations"],
+        "relationships": ["array", "of", "relationship", "tips"]
+    },
+    "when_to_seek_help": ["array", "of", "warning", "signs"]
+}
+"""

@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from jwt import encode as jwt_encode
 from django.conf import settings
 
-from users.models import User
+from users.models import User, UserDetails
 from utils.exceptions import  Conflict, ResourceNotFound, Unauthorized
 from utils.helpers import forge
 from authentication.serializers import AuthenticationSerializer
@@ -53,9 +53,18 @@ class AutenticationView(APIView):
                 
             token = self.generate_token(payload={'user_id_hash': user_id_hash})
             
+            logger.info(f'User {user_id_hash} logged in successfully')
+            
+            user_details_exists = UserDetails.objects.filter(user_id_hash=user_id_hash)
+            
+            user_details_exists = len(user_details_exists) > 0
+            
+            logger.info(f'User details exists: {user_details_exists}')
+            
             response_body = {
                 'message': 'Login successful',
                 'token': token,
+                'exists': user_details_exists
             }
             
             return response_body
@@ -79,8 +88,8 @@ class AutenticationView(APIView):
 
         response_body = {
             'message': 'User created successfully',
-            'user_id_hash': user.user_id_hash,
             'token': token,
+            'exists': False
         }
         
         return response_body, 201 

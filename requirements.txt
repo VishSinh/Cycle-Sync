@@ -50,6 +50,8 @@ incremental==22.10.0
 ipython==8.34.0
 jedi==0.19.2
 joblib==1.3.2
+jsonschema==4.23.0
+jsonschema-specifications==2024.10.1
 keras==3.9.0
 kombu==5.3.5
 libclang==18.1.1
@@ -86,9 +88,11 @@ pyOpenSSL==24.1.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2024.1
+referencing==0.36.2
 regex==2024.11.6
 requests==2.32.3
 rich==13.9.4
+rpds-py==0.23.1
 rsa==4.9
 scikit-learn==1.6.1
 scipy==1.12.0

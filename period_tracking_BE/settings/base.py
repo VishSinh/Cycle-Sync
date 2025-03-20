@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',  # Add CORS headers app
     'authentication',
     'cycles',
     'users',
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Add CORS middleware before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -57,6 +59,38 @@ MIDDLEWARE = [
     'period_tracking_BE.middlewares.exception_middleware.ExceptionMiddleware',
     # 'period_tracking_BE.middlewares.ResponseMiddleware',
 ]
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = False  # Set to True to allow all origins (not recommended for production)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React default port
+    "http://localhost:8000",  # Django default port
+    # Add other origins as needed
+]
+
+CORS_ALLOW_METHODS = [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Set to True if you want to allow cookies to be included in cross-site requests
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'period_tracking_BE.urls'
 
@@ -190,5 +224,7 @@ CELERY_BROKER_URL = os_getenv('CELERY_BROKER_URL')
 # RATE LIMIT SETTINGS
 NON_REGISTERED_RATE_LIMIT = int(os_getenv('NON_REGISTERED_RATE_LIMIT'))  
 REGISTERED_RATE_LIMIT = int(os_getenv('REGISTERED_RATE_LIMIT'))  
-RATE_LIMIT_WINDOW = timedelta(hours=int(os_getenv('RATE_LIMIT_WINDOW'))) 
+RATE_LIMIT_WINDOW = timedelta(hours=int(os_getenv('RATE_LIMIT_WINDOW')))
+
+GEMINI_API_KEY = os_getenv('GEMINI_API_KEY')
 
