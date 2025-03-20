@@ -1,6 +1,5 @@
 # Configuration Variables
-COMPOSE_LOCAL := docker compose -f compose.local.yaml
-COMPOSE_PROD := docker compose
+COMPOSE := docker compose
 PROJECT_NAME := myproject  # Replace with your project name
 
 # Colors for terminal output
@@ -14,24 +13,16 @@ NC := \033[0m  # No Color
 .DEFAULT_GOAL := help
 
 # Mark all targets that don't represent files
-.PHONY: help build-local build-prod run-local run-prod stop logs \
-        migrations migrate-local migrate-prod shell-local shell-prod \
-        clean prune test lint build-and-run-local build-and-run-prod
+.PHONY: help build run stop logs migrations migrate shell clean prune test lint build-and-run
 
 help:
 	@echo "$(CYAN)Docker Development Commands:$(NC)"
-	@echo "$(GREEN)make build-and-run-local$(NC) - Build and run local development environment"
-	@echo "$(GREEN)make build-local$(NC)      - Build local development containers"
-	@echo "$(GREEN)make run-local$(NC)        - Run local development server"
+	@echo "$(GREEN)make build-and-run$(NC)    - Build and run the environment"
+	@echo "$(GREEN)make build$(NC)            - Build Docker containers"
+	@echo "$(GREEN)make run$(NC)              - Run the server"
 	@echo "$(GREEN)make migrations$(NC)       - Create new database migrations"
-	@echo "$(GREEN)make migrate-local$(NC)    - Apply migrations locally"
-	@echo "$(GREEN)make shell-local$(NC)      - Open Python shell locally"
-	@echo "$(CYAN)Docker Production Commands:$(NC)"
-	@echo "$(GREEN)make build-and-run-prod$(NC) - Build and run production environment"
-	@echo "$(GREEN)make build-prod$(NC)       - Build production containers"
-	@echo "$(GREEN)make run-prod$(NC)         - Run production server"
-	@echo "$(GREEN)make migrate-prod$(NC)     - Apply migrations in production"
-	@echo "$(GREEN)make shell-prod$(NC)       - Open Python shell in production"
+	@echo "$(GREEN)make migrate$(NC)          - Apply database migrations"
+	@echo "$(GREEN)make shell$(NC)            - Open Python shell"
 	@echo "$(CYAN)Utility Commands:$(NC)"
 	@echo "$(GREEN)make stop$(NC)             - Stop all running containers"
 	@echo "$(GREEN)make logs$(NC)             - View container logs"
@@ -40,81 +31,65 @@ help:
 	@echo "$(GREEN)make test$(NC)             - Run tests"
 	@echo "$(GREEN)make lint$(NC)             - Run code linting"
 
-# Combined build and run commands
-build-and-run-local:
-	@echo "$(YELLOW)Building and running local environment...$(NC)"
-	$(COMPOSE_LOCAL) build --pull
-	$(COMPOSE_LOCAL) run --rm web python manage.py makemigrations
-	$(COMPOSE_LOCAL) run --rm web python manage.py migrate
-	$(COMPOSE_LOCAL) up
+# Combined build and run command
+build-and-run:
+	@echo "$(YELLOW)Building and running environment...$(NC)"
+	$(COMPOSE) build --pull
+	$(COMPOSE) run --rm web python manage.py makemigrations
+	$(COMPOSE) run --rm web python manage.py migrate
+	$(COMPOSE) up
 
-build-and-run-prod:
-	@echo "$(YELLOW)Building and running production environment...$(NC)"
-	$(COMPOSE_PROD) build --pull
-	$(COMPOSE_PROD) run --rm web python manage.py migrate
-	$(COMPOSE_PROD) up -d
+# Build containers
+build:
+	@echo "$(YELLOW)Building Docker containers...$(NC)"
+	$(COMPOSE) build --pull --no-cache
 
-# Development commands
-build-local:
-	@echo "$(YELLOW)Building local containers...$(NC)"
-	$(COMPOSE_LOCAL) build --pull --no-cache
+# Run server
+run: migrate
+	@echo "$(YELLOW)Starting the server...$(NC)"
+	$(COMPOSE) up
 
-run-local: migrate-local
-	@echo "$(YELLOW)Starting local development server...$(NC)"
-	$(COMPOSE_LOCAL) up
-
+# Create new migrations
 migrations:
 	@echo "$(YELLOW)Creating new migrations...$(NC)"
-	$(COMPOSE_LOCAL) run --rm web python manage.py makemigrations
+	$(COMPOSE) run --rm web python manage.py makemigrations
 
-migrate-local:
-	@echo "$(YELLOW)Applying migrations locally...$(NC)"
-	$(COMPOSE_LOCAL) run --rm web python manage.py migrate
+# Apply database migrations
+migrate:
+	@echo "$(YELLOW)Applying migrations...$(NC)"
+	$(COMPOSE) run --rm web python manage.py migrate
 
-shell-local:
-	@echo "$(YELLOW)Opening Python shell locally...$(NC)"
-	$(COMPOSE_LOCAL) run --rm web python manage.py shell
+# Open Python shell
+shell:
+	@echo "$(YELLOW)Opening Python shell...$(NC)"
+	$(COMPOSE) run --rm web python manage.py shell
 
-# Production commands
-build-prod:
-	@echo "$(YELLOW)Building production containers...$(NC)"
-	$(COMPOSE_PROD) build --pull --no-cache
-
-run-prod: migrate-prod
-	@echo "$(YELLOW)Starting production server...$(NC)"
-	$(COMPOSE_PROD) up -d
-
-migrate-prod:
-	@echo "$(YELLOW)Applying migrations in production...$(NC)"
-	$(COMPOSE_PROD) run --rm web python manage.py migrate
-
-shell-prod:
-	@echo "$(YELLOW)Opening Python shell in production...$(NC)"
-	$(COMPOSE_PROD) run --rm web python manage.py shell
-
-# Utility commands
+# Stop all containers
 stop:
 	@echo "$(YELLOW)Stopping all containers...$(NC)"
-	$(COMPOSE_LOCAL) down
-	$(COMPOSE_PROD) down
+	$(COMPOSE) down
 
+# View container logs
 logs:
 	@echo "$(YELLOW)Viewing container logs...$(NC)"
-	$(COMPOSE_PROD) logs -f
+	$(COMPOSE) logs -f
 
+# Remove containers and volumes
 clean:
 	@echo "$(RED)Removing containers and volumes...$(NC)"
-	$(COMPOSE_LOCAL) down -v --remove-orphans
-	$(COMPOSE_PROD) down -v --remove-orphans
+	$(COMPOSE) down -v --remove-orphans
 
+# Deep clean Docker system
 prune:
 	@echo "$(RED)Deep cleaning Docker system...$(NC)"
 	docker system prune -af
 
+# Run tests
 test:
 	@echo "$(YELLOW)Running tests...$(NC)"
-	$(COMPOSE_LOCAL) run --rm web python manage.py test
+	$(COMPOSE) run --rm web python manage.py test
 
+# Run code linting
 lint:
 	@echo "$(YELLOW)Running code linting...$(NC)"
-	$(COMPOSE_LOCAL) run --rm web flake8
+	$(COMPOSE) run --rm web flake8
