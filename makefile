@@ -32,7 +32,7 @@ help:
 	@echo "$(GREEN)make lint$(NC)             - Run code linting"
 
 # Combined build and run command
-build-and-run:
+build-and-run: prune
 	@echo "$(YELLOW)Building and running environment...$(NC)"
 	$(COMPOSE) build --pull
 	$(COMPOSE) run --rm web python manage.py makemigrations
@@ -40,7 +40,7 @@ build-and-run:
 	$(COMPOSE) up
 
 # Build containers
-build:
+build: prune
 	@echo "$(YELLOW)Building Docker containers...$(NC)"
 	$(COMPOSE) build --pull --no-cache
 

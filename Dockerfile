@@ -48,4 +48,4 @@ USER appuser
 EXPOSE 8000
 
 # Production web server command
-CMD ["gunicorn", "period_tracking_BE.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120"]
+CMD ["gunicorn", "period_tracking_BE.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "1", "--timeout", "120"]
