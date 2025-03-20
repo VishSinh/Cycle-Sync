@@ -34,7 +34,6 @@ executing==2.2.0
 flatbuffers==25.2.10
 frozenlist==1.5.0
 gast==0.6.0
-genai==2.1.0
 google-auth==2.38.0
 # google-genai==1.5.0
 google-pasta==0.2.0
@@ -65,7 +64,7 @@ ml_dtypes==0.5.1
 multidict==6.2.0
 namex==0.0.8
 numpy==1.26.4
-openai==0.27.10
+# openai==0.27.10
 opt_einsum==3.4.0
 optree==0.14.1
 packaging==23.2
