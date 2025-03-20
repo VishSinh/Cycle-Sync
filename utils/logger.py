@@ -113,8 +113,12 @@ def get_django_logging_config(log_dir='logs',
     
     # Create log directory if it doesn't exist
     if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-        
+        try:
+            os.makedirs(log_dir)
+        except OSError as e:
+            print(f"Error creating log directory: {e}")
+            raise
+
     # Calculate max bytes
     max_bytes = max_file_size_mb * 1024 * 1024
 

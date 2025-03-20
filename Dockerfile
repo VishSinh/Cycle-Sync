@@ -1,44 +1,41 @@
-FROM python:3.12.6-slim
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-# Set work directory
+# Stage 1: Builder
+FROM python:3.12.6-slim AS builder
 WORKDIR /app
 
-# Install system dependencies, PostgreSQL client libraries, and Rust
+# Install system dependencies and Rust
 RUN apt-get update && apt-get install -y \
     gcc \
     python3-dev \
     libpq-dev \
-    postgresql-client \
     curl \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Add Rust to PATH explicitly
+# Add Rust to PATH
 ENV PATH="/root/.cargo/bin:$PATH"
 
-# Create and activate virtual environment
+# Create and activate venv
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Upgrade pip and install Python dependencies
+# Upgrade pip and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir gunicorn
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
-# Create non-root user
-RUN adduser --disabled-password --no-create-home appuser
+# Stage 2: Final Image
+FROM python:3.12.6-slim
+WORKDIR /app
 
-# Copy project files
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
 COPY . .
 
-# Change ownership to non-root user
+# Set path to venv in the final image
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create a non-root user
+RUN adduser --disabled-password --no-create-home appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
 EXPOSE 8000

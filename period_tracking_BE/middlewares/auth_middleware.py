@@ -18,7 +18,6 @@ class AuthMiddleware:
     def verify_token(self, token: str):
         try:
             decoded_token = jwt.decode(token, settings.SESSION_SECRET_KEY, algorithms=['HS256'])
-            logger.info(f"Decoded token: {decoded_token}")
             token_uuid = decoded_token.get('user_id_hash')
             expiry = datetime.fromtimestamp(decoded_token.get('exp'), tz=UTC)
             
@@ -50,7 +49,7 @@ class AuthMiddleware:
                 raise Unauthorized('Invalid user')
             
             request.user_obj = user
-            logger.info(f"Incoming request from user: {request.user_obj.email}")
+            # logger.info(f"Incoming request from user: {request.user_obj.email}")
             
             return self.get_response(request)
         except Unauthorized as e:
