@@ -6,8 +6,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: final
-    # No command override - using CMD from Dockerfile
-    # No source code volumes in production
     volumes:
       - static_volume:/app/static
     expose:
@@ -32,7 +30,7 @@ services:
   nginx:
     image: nginx:alpine
     volumes:
-      - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - static_volume:/app/static:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro  # For SSL certificates if using Let's Encrypt
     ports:
