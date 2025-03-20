@@ -2,7 +2,8 @@ from .base import *
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
+allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost,0.0.0.0')
+ALLOWED_HOSTS = allowed_hosts_env.split(',')
 
 DATABASES = {
     'default': {
