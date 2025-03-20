@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from rest_framework.views import APIView
 from django.db.models import Q
-from google import genai
+# from google import genai
 
 from cycles.models import PeriodRecord, CurrentPeriod, Phases, SymptomsRecord, PhaseInfo, ExerciseDetails, LifestyleAdjustment, NutrientDetails, Recommendations, HealthWarning, Phases, RecommendationsNutrition, RecommendationsExercise, RecommendationsSelfCare, NutrientDetailsKeyNutrient
 from cycles.serializers import CreatePeriodRecordSerializer, CreateSymptomsRecordSerializer, FetchPeriodRecordDetailsSerializer, FetchSymptomsRecordsSerializer
@@ -368,179 +368,179 @@ class CurrentStatusView(APIView):
         
     
  
-class GetPhaseDetailsView(APIView):
+# class GetPhaseDetailsView(APIView):
     
-    @forge
-    def get(self, request):
+#     @forge
+#     def get(self, request):
         
-        if not (phase:=request.query_params.get('phase', None)):
-            raise BadRequest('Phase not provided')
+#         if not (phase:=request.query_params.get('phase', None)):
+#             raise BadRequest('Phase not provided')
         
-        phase = int(phase)
+#         phase = int(phase)
         
-        # if not (secret_token:=request.query_params.get('secret_token', None)):
-        #     raise BadRequest('Secret token not provided')
+#         # if not (secret_token:=request.query_params.get('secret_token', None)):
+#         #     raise BadRequest('Secret token not provided')
         
-        # secret_token = settings.PHASE_DETAILS_SECRET_TOKEN
-        # if secret_token != secret_token:
-        #     raise BadRequest('Invalid secret token provided')
+#         # secret_token = settings.PHASE_DETAILS_SECRET_TOKEN
+#         # if secret_token != secret_token:
+#         #     raise BadRequest('Invalid secret token provided')
         
-        if phase == Phases.MENSTRUAL:
-            phase = "Menstrual"
-        elif phase == Phases.FOLLICULAR:
-            phase = "Follicular"
-        elif phase == Phases.OVULATION:
-            phase = "Ovulation"
-        elif phase == Phases.LUTEAL:
-            phase = "Luteal"
-        else:
-            raise BadRequest('Invalid phase provided')
+#         if phase == Phases.MENSTRUAL:
+#             phase = "Menstrual"
+#         elif phase == Phases.FOLLICULAR:
+#             phase = "Follicular"
+#         elif phase == Phases.OVULATION:
+#             phase = "Ovulation"
+#         elif phase == Phases.LUTEAL:
+#             phase = "Luteal"
+#         else:
+#             raise BadRequest('Invalid phase provided')
         
-        # logger.info(f"{PROMPT}\nThe phase to analyze is: {phase}")
+#         # logger.info(f"{PROMPT}\nThe phase to analyze is: {phase}")
         
         
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[f"{PROMPT}\nThe phase to analyze is: {phase}"],
-        )
+#         client = genai.Client(api_key=settings.GEMINI_API_KEY)
+#         response = client.models.generate_content(
+#             model="gemini-2.0-flash",
+#             contents=[f"{PROMPT}\nThe phase to analyze is: {phase}"],
+#         )
         
-        # logger.info(f"Response from Gemini API: \n{response}")
+#         # logger.info(f"Response from Gemini API: \n{response}")
         
-        raw_text = response.candidates[0].content.parts[0].text
+#         raw_text = response.candidates[0].content.parts[0].text
 
-        # Clean and parse the JSON
-        clean_text = raw_text.replace("```json", "").replace("```", "").strip()
-        parsed_json = json.loads(clean_text)
+#         # Clean and parse the JSON
+#         clean_text = raw_text.replace("```json", "").replace("```", "").strip()
+#         parsed_json = json.loads(clean_text)
         
-        # logger.info(f"Parsed JSON: \n{parsed_json}")
+#         # logger.info(f"Parsed JSON: \n{parsed_json}")
         
-        current_phase = parsed_json['current_phase']
-        recommendations = parsed_json['recommendations']
-        exercise_details = parsed_json['exercise_details']
-        nutrition_details = parsed_json['nutrition_details']
-        lifestyle_adjustments = parsed_json['lifestyle_adjustments']
-        when_to_seek_help = parsed_json['when_to_seek_help']
-        
-        
-        logger.info(f"Current phase: \n{current_phase}")
-        logger.info(f"Recommendations: \n{recommendations}")
-        logger.info(f"Exercise details: \n{exercise_details}")
-        logger.info(f"Nutrition details: \n{nutrition_details}")
-        logger.info(f"Lifestyle adjustments: \n{lifestyle_adjustments}")
-        logger.info(f"When to seek help: \n{when_to_seek_help}")
+#         current_phase = parsed_json['current_phase']
+#         recommendations = parsed_json['recommendations']
+#         exercise_details = parsed_json['exercise_details']
+#         nutrition_details = parsed_json['nutrition_details']
+#         lifestyle_adjustments = parsed_json['lifestyle_adjustments']
+#         when_to_seek_help = parsed_json['when_to_seek_help']
         
         
-        # Map the phase name to enum value
-        phase_mapping = {
-            "Menstrual": Phases.MENSTRUAL,
-            "Follicular": Phases.FOLLICULAR, 
-            "Ovulation": Phases.OVULATION,
-            "Luteal": Phases.LUTEAL
-        }
-        phase_type = phase_mapping[phase]
+#         logger.info(f"Current phase: \n{current_phase}")
+#         logger.info(f"Recommendations: \n{recommendations}")
+#         logger.info(f"Exercise details: \n{exercise_details}")
+#         logger.info(f"Nutrition details: \n{nutrition_details}")
+#         logger.info(f"Lifestyle adjustments: \n{lifestyle_adjustments}")
+#         logger.info(f"When to seek help: \n{when_to_seek_help}")
         
-        # Clear existing data for this phase
-        logger.info(f"Clearing existing data for phase: {phase} (phase_type={phase_type})")
-        PhaseInfo.objects.filter(phase_type=phase_type).delete()
-        ExerciseDetails.objects.filter(phase=phase_type).delete()
-        LifestyleAdjustment.objects.filter(phase=phase_type).delete()
-        HealthWarning.objects.filter(phase=phase_type).delete()
-        Recommendations.objects.filter(phase=phase_type).delete()
-        NutrientDetails.objects.filter(phase=phase_type).delete()
         
-        # Save PhaseInfo
-        phase_info = PhaseInfo.objects.create(
-            phase_type=phase_type,
-            name=current_phase['name'],
-            days_in_cycle=current_phase['days_in_cycle'],
-            hormone_changes=current_phase['hormone_changes'],
-            common_symptoms=current_phase['common_symptoms'],
-            description=current_phase['description']
-        )
+#         # Map the phase name to enum value
+#         phase_mapping = {
+#             "Menstrual": Phases.MENSTRUAL,
+#             "Follicular": Phases.FOLLICULAR, 
+#             "Ovulation": Phases.OVULATION,
+#             "Luteal": Phases.LUTEAL
+#         }
+#         phase_type = phase_mapping[phase]
         
-        # Save Exercise Details
-        exercise_objs = []
-        for exercise in exercise_details:
-            exercise_obj = ExerciseDetails.objects.create(
-                phase=phase_type,
-                name=exercise['name'],
-                description=exercise['description'],
-                benefits_during_phase=exercise['benefits_during_phase'],
-                difficulty=exercise['difficulty'],
-                duration=exercise['duration'],
-                modifications=exercise['modifications']
-            )
-            exercise_objs.append(exercise_obj)
+#         # Clear existing data for this phase
+#         logger.info(f"Clearing existing data for phase: {phase} (phase_type={phase_type})")
+#         PhaseInfo.objects.filter(phase_type=phase_type).delete()
+#         ExerciseDetails.objects.filter(phase=phase_type).delete()
+#         LifestyleAdjustment.objects.filter(phase=phase_type).delete()
+#         HealthWarning.objects.filter(phase=phase_type).delete()
+#         Recommendations.objects.filter(phase=phase_type).delete()
+#         NutrientDetails.objects.filter(phase=phase_type).delete()
         
-        # Save Lifestyle Adjustments
-        lifestyle_obj = LifestyleAdjustment.objects.create(
-            phase=phase_type,
-            work=lifestyle_adjustments['work'],
-            social=lifestyle_adjustments['social'],
-            relationships=lifestyle_adjustments['relationships']
-        )
+#         # Save PhaseInfo
+#         phase_info = PhaseInfo.objects.create(
+#             phase_type=phase_type,
+#             name=current_phase['name'],
+#             days_in_cycle=current_phase['days_in_cycle'],
+#             hormone_changes=current_phase['hormone_changes'],
+#             common_symptoms=current_phase['common_symptoms'],
+#             description=current_phase['description']
+#         )
         
-        # Save Health Warnings
-        health_warning = HealthWarning.objects.create(
-            phase=phase_type,
-            when_to_seek_help=when_to_seek_help
-        )
+#         # Save Exercise Details
+#         exercise_objs = []
+#         for exercise in exercise_details:
+#             exercise_obj = ExerciseDetails.objects.create(
+#                 phase=phase_type,
+#                 name=exercise['name'],
+#                 description=exercise['description'],
+#                 benefits_during_phase=exercise['benefits_during_phase'],
+#                 difficulty=exercise['difficulty'],
+#                 duration=exercise['duration'],
+#                 modifications=exercise['modifications']
+#             )
+#             exercise_objs.append(exercise_obj)
         
-        # Create Recommendations objects as dictionaries (not instances of abstract models)
-        nutrition_rec = {
-            'foods_to_emphasize': recommendations['nutrition']['foods_to_emphasize'],
-            'foods_to_minimize': recommendations['nutrition']['foods_to_minimize'],
-            'nutrients_to_focus_on': recommendations['nutrition']['nutrients_to_focus_on']
-        }
+#         # Save Lifestyle Adjustments
+#         lifestyle_obj = LifestyleAdjustment.objects.create(
+#             phase=phase_type,
+#             work=lifestyle_adjustments['work'],
+#             social=lifestyle_adjustments['social'],
+#             relationships=lifestyle_adjustments['relationships']
+#         )
         
-        exercise_rec = {
-            'recommended_types': recommendations['exercise']['recommended_types'],
-            'intensity_level': recommendations['exercise']['intensity_level'],
-            'exercise_to_avoid': recommendations['exercise'].get('exercises_to_avoid', [])
-        }
+#         # Save Health Warnings
+#         health_warning = HealthWarning.objects.create(
+#             phase=phase_type,
+#             when_to_seek_help=when_to_seek_help
+#         )
         
-        self_care_rec = {
-            'physical': recommendations['self_care']['physical'],
-            'emotional': recommendations['self_care']['emotional'],
-            'sleep': recommendations['self_care']['sleep']
-        }
+#         # Create Recommendations objects as dictionaries (not instances of abstract models)
+#         nutrition_rec = {
+#             'foods_to_emphasize': recommendations['nutrition']['foods_to_emphasize'],
+#             'foods_to_minimize': recommendations['nutrition']['foods_to_minimize'],
+#             'nutrients_to_focus_on': recommendations['nutrition']['nutrients_to_focus_on']
+#         }
         
-        # Create and save Recommendations
-        recs = Recommendations.objects.create(
-            phase=phase_type,
-            nutrition=[nutrition_rec],
-            exercise=[exercise_rec],
-            self_care=[self_care_rec]
-        )
+#         exercise_rec = {
+#             'recommended_types': recommendations['exercise']['recommended_types'],
+#             'intensity_level': recommendations['exercise']['intensity_level'],
+#             'exercise_to_avoid': recommendations['exercise'].get('exercises_to_avoid', [])
+#         }
         
-        # Process key nutrients as dictionaries
-        key_nutrients = []
-        for nutrient_data in nutrition_details['key_nutrients']:
-            key_nutrient = {
-                'nutrient': nutrient_data['nutrient'],
-                'benefits_during_phase': nutrient_data['benefits_during_phase'],
-                'food_sources': nutrient_data['food_sources']
-            }
-            key_nutrients.append(key_nutrient)
+#         self_care_rec = {
+#             'physical': recommendations['self_care']['physical'],
+#             'emotional': recommendations['self_care']['emotional'],
+#             'sleep': recommendations['self_care']['sleep']
+#         }
         
-        # Create and save Nutrient Details
-        nutrient_details_obj = NutrientDetails.objects.create(
-            phase=phase_type,
-            key_nutrient=key_nutrients,
-            meal_plan=nutrition_details['meal_plan'],
-            hydration_tips=nutrition_details['hydration_tips'],
-            supplement_recommendations=nutrition_details['supplement_recommendations']
-        )
+#         # Create and save Recommendations
+#         recs = Recommendations.objects.create(
+#             phase=phase_type,
+#             nutrition=[nutrition_rec],
+#             exercise=[exercise_rec],
+#             self_care=[self_care_rec]
+#         )
         
-        response = {
-            "message": f"Phase details for {phase} phase fetched and saved successfully",
-            # "phase_info": model_to_dict(phase_info),
-            # "recommendations": model_to_dict(recs),
-            "when_to_seek_help": when_to_seek_help
-        }
+#         # Process key nutrients as dictionaries
+#         key_nutrients = []
+#         for nutrient_data in nutrition_details['key_nutrients']:
+#             key_nutrient = {
+#                 'nutrient': nutrient_data['nutrient'],
+#                 'benefits_during_phase': nutrient_data['benefits_during_phase'],
+#                 'food_sources': nutrient_data['food_sources']
+#             }
+#             key_nutrients.append(key_nutrient)
         
-        return response
+#         # Create and save Nutrient Details
+#         nutrient_details_obj = NutrientDetails.objects.create(
+#             phase=phase_type,
+#             key_nutrient=key_nutrients,
+#             meal_plan=nutrition_details['meal_plan'],
+#             hydration_tips=nutrition_details['hydration_tips'],
+#             supplement_recommendations=nutrition_details['supplement_recommendations']
+#         )
+        
+#         response = {
+#             "message": f"Phase details for {phase} phase fetched and saved successfully",
+#             # "phase_info": model_to_dict(phase_info),
+#             # "recommendations": model_to_dict(recs),
+#             "when_to_seek_help": when_to_seek_help
+#         }
+        
+#         return response
 
 PROMPT = """
 Please provide detailed information about the {PHASE} phase of the menstrual cycle in JSON format.
