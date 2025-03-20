@@ -1,6 +1,5 @@
 import pickle
 import numpy as np
-import tensorflow as tf
 from datetime import datetime, timedelta
 from django.utils import timezone
 from logging import getLogger
@@ -17,7 +16,16 @@ class PeriodPredictionService:
                 label_scaler_path="./models/label_scaler.pkl"):
         """Load the model and scalers"""
         # Load the model
-        self.model = tf.keras.models.load_model(model_path)
+        # self.model = tf.keras.models.load_model(model_path)
+        
+        # Available backend options are: "jax", "torch", "tensorflow".
+        import os
+        os.environ["KERAS_BACKEND"] = "jax"
+            
+        import keras
+
+        self.model = keras.saving.load_model(model_path)
+
         
         # Load the scalers
         with open(feature_scaler_path, 'rb') as f:
