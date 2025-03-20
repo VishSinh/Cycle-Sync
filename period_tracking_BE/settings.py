@@ -16,8 +16,6 @@ SECRET_KEY = os_getenv('SECRET_KEY')
 DEBUG = os_getenv('DEBUG') == 'True'
 ALLOWED_HOSTS = os_getenv('ALLOWED_HOSTS', '127.0.0.1,localhost,0.0.0.0').split(',')
 MONGO_DB_URI = os_getenv('MONGO_DB_URI', 'mongodb://mongodb:27017/')
-print(ALLOWED_HOSTS)
-print(MONGO_DB_URI)
 # APPLICATION SETTINGS
 SESSION_SECRET_KEY = os_getenv('SESSION_SECRET_KEY')
 SESSION_EXPIRY = int(os_getenv('SESSION_EXPIRY', '3600'))
