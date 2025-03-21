@@ -93,7 +93,15 @@ CORS_ALLOWED_ORIGINS = [
     "https://cycle-sync-webapp.vercel.app",
     "http://localhost:8000", 
     "http://127.0.0.1:8000", 
-    "http://0.0.0.0:8000",    
+    "http://0.0.0.0:8000", 
+       
+    "https://cyclesync.tech",
+    "https://api.cyclesync.tech",
+    "https://www.cyclesync.tech",
+    
+    "http://cyclesync.tech",
+    "http://api.cyclesync.tech",
+    "http://www.cyclesync.tech"
 ]
 # https://cycle-sync-webapp.vercel.app/auth
 
