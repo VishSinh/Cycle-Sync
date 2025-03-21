@@ -5,6 +5,7 @@ from django.utils import timezone
 from logging import getLogger
 
 from cycles.models import PeriodRecord
+from predictions.models import CyclePreditction
 
 logger = getLogger(__name__)
 
@@ -138,6 +139,15 @@ class PeriodPredictionService:
         
         
 def get_next_period_start_date(user_id_hash):
+    current_datetime = timezone.now()
+    
+    cycle_prediction = CyclePreditction.objects.filter(user_id_hash=user_id_hash).first()
+    
+    # If the last preditction datetime is more than 24 hours then only we need to generate new prediction
+    if cycle_prediction and (current_datetime - cycle_prediction.update_datetime).days < 1:
+        return cycle_prediction.next_period_start
+    
+    
     period_records = PeriodRecord.objects.filter(user_id_hash=user_id_hash, current_status=PeriodRecord.CurrentStatus.COMPLETED.value)
         
     period_history = []
@@ -150,5 +160,19 @@ def get_next_period_start_date(user_id_hash):
         
     prediction_service = PeriodPredictionService()
     prediction = prediction_service.predict_next_period(period_history)
-    logger.info(f"Prediction data generated successfully:\n{prediction}")
+    
+    if prediction:
+        logger.info(f"Prediction data generated successfully:\n{prediction}")   
+
+        cycle_prediction, created = CyclePreditction.objects.update_or_create(
+            user_id_hash=user_id_hash,  
+            defaults={
+                'cycle_length': prediction['cycle_length'],
+                'period_duration': prediction['period_duration'],
+                'next_period_start': prediction['next_period_start'],
+                'next_period_end': prediction['next_period_end'],
+                'days_until_next_period': prediction['days_until_next_period']
+            }
+        )
+    
     return prediction['next_period_start'] if prediction else None
