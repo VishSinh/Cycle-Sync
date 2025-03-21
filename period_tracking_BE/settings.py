@@ -90,12 +90,12 @@ CORS_ALLOW_ALL_ORIGINS = False  # Set to True to allow all origins (not recommen
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  
     "http://127.0.0.1:3000",
-    
+    "https://cycle-sync-webapp.vercel.app",
     "http://localhost:8000", 
     "http://127.0.0.1:8000", 
     "http://0.0.0.0:8000",    
 ]
-
+# https://cycle-sync-webapp.vercel.app/auth
 
 CORS_ALLOW_METHODS = [
     'GET',
